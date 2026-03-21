@@ -25,9 +25,26 @@ const PORT = process.env.PORT || 5000
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(',').map(u => u.trim())
-    : 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true)
+
+    const allowed = process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(',').map(u => u.trim())
+      : ['http://localhost:3000']
+
+    // Also allow any vercel.app and railway.app domains
+    if (
+      allowed.some(u => origin === u) ||
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('.railway.app') ||
+      origin.startsWith('http://localhost')
+    ) {
+      return callback(null, true)
+    }
+
+    callback(new Error('Not allowed by CORS'))
+  },
   credentials: true
 }))
 app.use(express.json())
