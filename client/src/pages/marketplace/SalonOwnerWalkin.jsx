@@ -80,6 +80,14 @@ export default function SalonOwnerWalkin() {
       })
       setLastBill(res.data.booking)
       toast.success(`Bill generated! ₹${res.data.booking.final_price}`)
+      // Clear form immediately after success
+      setSelectedServices([])
+      setCustomerName('')
+      setCustomerPhone('')
+      setSelectedStylist('')
+      setPaymentMethod('cash')
+      setDiscount('')
+      setNotes('')
       // Refresh today data
       const todayRes = await api.get('/salon-owner/today')
       setTodayData(todayRes.data)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiCalendar, FiDollarSign, FiClock, FiStar, FiMail, FiExternalLink, FiCopy } from 'react-icons/fi'
+import { FiCalendar, FiDollarSign, FiClock, FiStar, FiMail, FiExternalLink, FiCopy, FiCheck, FiPlus, FiArrowRight } from 'react-icons/fi'
 import SalonOwnerLayout, { useSalonOwnerApi } from '../../components/marketplace/SalonOwnerLayout'
 import toast from 'react-hot-toast'
 
@@ -34,17 +34,26 @@ export default function SalonOwnerDashboard() {
   const [dashboard, setDashboard] = useState(null)
   const [salon, setSalon] = useState(null)
   const [loading, setLoading] = useState(true)
+  // Quick walk-in state
+  const [services, setServices] = useState([])
+  const [quickServices, setQuickServices] = useState([])
+  const [quickName, setQuickName] = useState('')
+  const [quickPayment, setQuickPayment] = useState('cash')
+  const [quickBilling, setQuickBilling] = useState(false)
+  const [quickSuccess, setQuickSuccess] = useState(null)
 
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
     try {
-      const [dashRes, salonRes] = await Promise.all([
+      const [dashRes, salonRes, svcRes] = await Promise.all([
         api.get('/salon-owner/dashboard'),
-        api.get('/salon-owner/salon')
+        api.get('/salon-owner/salon'),
+        api.get('/salon-owner/services'),
       ])
       setDashboard(dashRes.data)
       setSalon(salonRes.data.salon)
+      setServices(svcRes.data.services || [])
     } catch (error) {
       if (error.response?.status === 401) {
         localStorage.removeItem('salonOwnerToken')
@@ -83,6 +92,103 @@ export default function SalonOwnerDashboard() {
         <StatCard icon={FiDollarSign} label="Today's Revenue" value={`₹${stats.today_revenue || 0}`} color="bg-green-500" />
         <StatCard icon={FiStar} label="Rating" value={`${stats.avg_rating || 0} / 5`} color="bg-orange-500" link="/salon-owner/reviews" />
       </div>
+
+      {/* Quick Walk-in Widget */}
+      {services.length > 0 && (
+        <div className="bg-white rounded-2xl border-2 border-green-200 p-5 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Quick Walk-in Bill</h2>
+              <p className="text-sm text-gray-500">Tap services, enter name, bill in seconds</p>
+            </div>
+            <Link to="/salon-owner/walkin" className="text-sm text-brand-600 font-medium hover:text-brand-700 flex items-center gap-1">
+              Full POS <FiArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {quickSuccess ? (
+            <div className="flex items-center justify-between bg-green-50 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <FiCheck className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-green-800">₹{quickSuccess.final_price} billed!</p>
+                  <p className="text-sm text-green-600">{quickSuccess.customer_name} &bull; {quickSuccess.booking_code}</p>
+                </div>
+              </div>
+              <button onClick={() => { setQuickSuccess(null); setQuickServices([]); setQuickName(''); setQuickPayment('cash') }}
+                className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
+                New Bill
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Service Quick Select - show popular first, then all */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {services.sort((a, b) => (b.is_popular ? 1 : 0) - (a.is_popular ? 1 : 0)).slice(0, 10).map(svc => {
+                  const selected = quickServices.find(s => s.id === svc.id)
+                  return (
+                    <button key={svc.id}
+                      onClick={() => setQuickServices(prev => selected ? prev.filter(s => s.id !== svc.id) : [...prev, svc])}
+                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
+                        selected
+                          ? 'border-green-500 bg-green-50 text-green-700'
+                          : 'border-gray-100 text-gray-700 hover:border-green-200'
+                      }`}
+                    >
+                      {selected && <FiCheck className="w-3 h-3 inline mr-1" />}
+                      {svc.icon} {svc.name} <span className="text-xs opacity-60">₹{svc.discounted_price || svc.price}</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {quickServices.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Customer Name */}
+                  <input type="text" value={quickName} onChange={e => setQuickName(e.target.value)}
+                    placeholder="Customer name" className="flex-1 min-w-[140px] px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-green-400 text-gray-700" />
+
+                  {/* Payment pills */}
+                  <div className="flex gap-1">
+                    {[{v:'cash',l:'💵'},{v:'upi',l:'📱'},{v:'card',l:'💳'}].map(p => (
+                      <button key={p.v} onClick={() => setQuickPayment(p.v)}
+                        className={`px-3 py-2.5 rounded-xl text-sm transition ${quickPayment === p.v ? 'bg-green-100 border-2 border-green-400' : 'bg-gray-50 border-2 border-gray-100'}`}>
+                        {p.l}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Total + Bill button */}
+                  <button
+                    onClick={async () => {
+                      if (!quickName.trim()) { toast.error('Enter customer name'); return }
+                      setQuickBilling(true)
+                      try {
+                        const res = await api.post('/salon-owner/walkin', {
+                          customer_name: quickName.trim(),
+                          services: quickServices.map(s => s.id),
+                          payment_method: quickPayment,
+                        })
+                        setQuickSuccess(res.data.booking)
+                        toast.success(`Billed ₹${res.data.booking.final_price}!`)
+                        fetchData() // Refresh dashboard stats
+                      } catch (err) {
+                        toast.error(err.response?.data?.error || 'Failed')
+                      } finally { setQuickBilling(false) }
+                    }}
+                    disabled={quickBilling}
+                    className="px-5 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 transition disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {quickBilling ? '...' : `Bill ₹${quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)}`}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {/* Recent Bookings */}
       <div className="mb-8">
