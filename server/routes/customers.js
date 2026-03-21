@@ -18,15 +18,12 @@ router.post('/register', async (req, res) => {
     if (existing.length > 0) return res.status(409).json({ error: 'Phone number already registered' })
 
     const hashedPassword = await bcrypt.hash(password, 12)
-    const location = latitude && longitude ? `ST_MakePoint(${parseFloat(longitude)}, ${parseFloat(latitude)})::geography` : null
 
     const [result] = await db.query(
-      `INSERT INTO customers (name, phone, email, password, city, location)
-       VALUES ($1, $2, $3, $4, $5, ${location ? `ST_MakePoint($6, $7)::geography` : 'NULL'})
+      `INSERT INTO customers (name, phone, email, password, city, latitude, longitude)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING id`,
-      location
-        ? [name, phone, email || null, hashedPassword, city || null, parseFloat(longitude), parseFloat(latitude)]
-        : [name, phone, email || null, hashedPassword, city || null]
+      [name, phone, email || null, hashedPassword, city || null, latitude ? parseFloat(latitude) : null, longitude ? parseFloat(longitude) : null]
     )
 
     const token = generateToken({ id: result[0].id, phone, type: 'customer' })

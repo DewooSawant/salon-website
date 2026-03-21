@@ -4,21 +4,20 @@ import { cached, invalidate } from '../db/redis.js'
 
 const router = Router()
 
-// GET /api/salons/nearby - PostGIS spatial search with Redis cache
+// GET /api/salons/nearby - Haversine distance search with Redis cache
 router.get('/nearby', async (req, res) => {
   try {
     const { lat, lng, radius = 5000, type, sort = 'distance', page = 1, limit = 20, search } = req.query
 
     if (!lat || !lng) return res.status(400).json({ error: 'lat and lng required' })
 
-    // Cache key based on rounded coords (100m grid) + params
     const gridLat = Math.round(parseFloat(lat) * 100) / 100
     const gridLng = Math.round(parseFloat(lng) * 100) / 100
     const cacheKey = `salons:nearby:${gridLat}:${gridLng}:${radius}:${type || ''}:${sort}:${page}:${search || ''}`
 
     const data = await cached(cacheKey, 60, async () => {
       const offset = (parseInt(page) - 1) * parseInt(limit)
-      const params = [parseFloat(lng), parseFloat(lat), parseInt(radius)]
+      const params = [parseFloat(lat), parseFloat(lng), parseInt(radius)]
       let paramIdx = 4
       let filters = ''
 
@@ -41,21 +40,19 @@ router.get('/nearby', async (req, res) => {
 
       params.push(parseInt(limit), offset)
 
-      // Single optimized query — no N+1
       const [salons] = await db.query(`
         SELECT s.id, s.name, s.slug, s.tagline, s.address, s.city, s.type,
                s.phone, s.whatsapp, s.opening_time, s.closing_time,
                s.avg_rating, s.total_ratings, s.total_bookings,
                s.logo_url, s.cover_image_url, s.amenities, s.is_verified, s.is_featured,
-               ST_Y(s.location::geometry) as latitude,
-               ST_X(s.location::geometry) as longitude,
-               ROUND(ST_Distance(s.location, ST_MakePoint($1, $2)::geography)::numeric) as distance,
+               s.latitude, s.longitude,
+               ROUND(haversine_distance($1, $2, s.latitude, s.longitude)::numeric) as distance,
                COUNT(DISTINCT sv.id) AS service_count,
                MIN(sv.price) AS starting_price
         FROM salons s
         LEFT JOIN services sv ON sv.salon_id = s.id AND sv.is_active = TRUE
         WHERE s.is_active = TRUE
-          AND ST_DWithin(s.location, ST_MakePoint($1, $2)::geography, $3)
+          AND haversine_distance($1, $2, s.latitude, s.longitude) <= $3
           ${filters}
         GROUP BY s.id
         ORDER BY ${orderMap[sort] || orderMap.distance}
@@ -64,8 +61,8 @@ router.get('/nearby', async (req, res) => {
 
       const [countResult] = await db.query(`
         SELECT COUNT(*) as total FROM salons
-        WHERE is_active = TRUE AND ST_DWithin(location, ST_MakePoint($1, $2)::geography, $3)
-      `, [parseFloat(lng), parseFloat(lat), parseInt(radius)])
+        WHERE is_active = TRUE AND haversine_distance($1, $2, latitude, longitude) <= $3
+      `, [parseFloat(lat), parseFloat(lng), parseInt(radius)])
 
       return {
         salons: salons.map(s => ({
@@ -84,24 +81,21 @@ router.get('/nearby', async (req, res) => {
   }
 })
 
-// GET /api/salons/:slug - Full profile with ALL data in ONE query batch (no N+1)
+// GET /api/salons/:slug - Full profile
 router.get('/:slug', async (req, res) => {
   try {
     const { slug } = req.params
     const cacheKey = `salon:profile:${slug}`
 
     const data = await cached(cacheKey, 120, async () => {
-      // Get salon
-      const [salons] = await db.query(`
-        SELECT *, ST_Y(location::geometry) as latitude, ST_X(location::geometry) as longitude
-        FROM salons WHERE slug = $1 AND is_active = TRUE`, [slug])
+      const [salons] = await db.query(
+        'SELECT * FROM salons WHERE slug = $1 AND is_active = TRUE', [slug])
 
       if (salons.length === 0) return null
 
       const salon = salons[0]
       const salonId = salon.id
 
-      // Batch all related queries in parallel — no N+1
       const [servicesResult, stylistsResult, reviewsResult, galleryResult] = await Promise.all([
         db.query(`
           SELECT s.*, sc.name as category_name, sc.icon as category_icon, sc.display_order as cat_order
@@ -120,7 +114,6 @@ router.get('/:slug', async (req, res) => {
           SELECT * FROM gallery WHERE salon_id = $1 AND is_active = TRUE ORDER BY display_order LIMIT 20`, [salonId])
       ])
 
-      // Group services by category
       const servicesByCategory = {}
       for (const s of servicesResult[0]) {
         const cat = s.category_name || 'Other'
@@ -145,7 +138,7 @@ router.get('/:slug', async (req, res) => {
   }
 })
 
-// GET /api/salons/:slug/available-slots/:date — NOT cached (real-time data)
+// GET /api/salons/:slug/available-slots/:date
 router.get('/:slug/available-slots/:date', async (req, res) => {
   try {
     const { slug, date } = req.params

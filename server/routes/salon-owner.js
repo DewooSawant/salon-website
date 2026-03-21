@@ -57,9 +57,9 @@ router.post('/register', async (req, res) => {
       await client.query('BEGIN')
 
       const { rows: [salon] } = await client.query(
-        `INSERT INTO salons (name, slug, address, city, state, pincode, location, phone, whatsapp, type, opening_time, closing_time, working_days)
-         VALUES ($1,$2,$3,$4,$5,$6,ST_MakePoint($7,$8)::geography,$9,$10,$11,$12,$13,$14) RETURNING id`,
-        [salon_name, slug, address, city, state || null, pincode || null, parseFloat(longitude), parseFloat(latitude),
+        `INSERT INTO salons (name, slug, address, city, state, pincode, latitude, longitude, phone, whatsapp, type, opening_time, closing_time, working_days)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+        [salon_name, slug, address, city, state || null, pincode || null, parseFloat(latitude), parseFloat(longitude),
          salon_phone || phone, whatsapp || null, type || 'unisex', opening_time || '10:00:00', closing_time || '21:00:00',
          JSON.stringify(working_days || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])]
       )
@@ -142,7 +142,7 @@ router.get('/dashboard', authenticateSalonOwner, async (req, res) => {
 router.get('/salon', authenticateSalonOwner, async (req, res) => {
   try {
     const [salons] = await db.query(
-      `SELECT *, ST_Y(location::geometry) as latitude, ST_X(location::geometry) as longitude FROM salons WHERE id=$1`, [req.user.salon_id]
+      `SELECT * FROM salons WHERE id=$1`, [req.user.salon_id]
     )
     if (salons.length === 0) return res.status(404).json({ error: 'Salon not found' })
     res.json({ salon: salons[0] })
@@ -165,7 +165,7 @@ router.put('/salon', authenticateSalonOwner, async (req, res) => {
 
     // Handle lat/lng update
     if (req.body.latitude && req.body.longitude) {
-      updates.push(`location = ST_MakePoint($${idx}, $${idx+1})::geography`)
+      updates.push(`latitude = $${idx}`, `longitude = $${idx+1}`)
       values.push(parseFloat(req.body.longitude), parseFloat(req.body.latitude))
       idx += 2
     }
