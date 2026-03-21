@@ -108,7 +108,7 @@ export default function CustomerLogin() {
                   <div className="w-16 h-16 bg-brand-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <FiPhone className="w-7 h-7 text-brand-600" />
                   </div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome to SalonNear</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome to Stylo</h1>
                   <p className="text-gray-500 text-sm">Enter your phone number to continue</p>
                 </div>
 

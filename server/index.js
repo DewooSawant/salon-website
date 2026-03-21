@@ -83,7 +83,7 @@ app.get('/api/health', async (req, res) => {
   const dbStatus = await testConnection()
   res.json({
     status: dbStatus ? 'ok' : 'degraded',
-    message: 'SalonNear Marketplace API',
+    message: 'Stylo Marketplace API',
     database: dbStatus ? 'connected' : 'disconnected',
     version: '3.0.0',
     timestamp: new Date().toISOString()
@@ -92,7 +92,7 @@ app.get('/api/health', async (req, res) => {
 
 app.get('/api', (req, res) => {
   res.json({
-    name: 'SalonNear Marketplace API',
+    name: 'Stylo Marketplace API',
     version: '3.0.0',
     description: 'Multi-salon marketplace platform',
     endpoints: {
@@ -148,7 +148,7 @@ app.listen(PORT, () => {
   console.log(`
   ┌──────────────────────────────────────────────────┐
   │                                                  │
-  │   SalonNear Marketplace API v3.0                 │
+  │   Stylo Marketplace API v3.0                 │
   │   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━               │
   │                                                  │
   │   Server:   http://localhost:${PORT}               │

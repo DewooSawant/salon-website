@@ -19,7 +19,7 @@ async function setup() {
   let connection
 
   try {
-    console.log('\n  Setting up SalonNear Marketplace Database...\n')
+    console.log('\n  Setting up Stylo Marketplace Database...\n')
 
     connection = await mysql.createConnection(DB_CONFIG)
 
@@ -55,7 +55,7 @@ async function setup() {
 
     await connection.query(
       'UPDATE platform_admins SET password = ? WHERE email = ?',
-      [hashedPassword, 'admin@salonnear.com']
+      [hashedPassword, 'admin@stylo.com']
     ).catch(() => {})
 
     await connection.query(
@@ -78,7 +78,7 @@ async function setup() {
 
     console.log(`
   ┌──────────────────────────────────────────────────┐
-  │  SalonNear Marketplace - Setup Complete          │
+  │  Stylo Marketplace - Setup Complete          │
   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━            │
   │                                                  │
   │  Database:  salon_marketplace                    │
@@ -91,7 +91,7 @@ async function setup() {
   │  ─────────────────                               │
   │  Salon Owner:  rajesh@glamourcuts.com / admin123 │
   │  Customer:     +91 99999 00001 / customer123     │
-  │  Platform:     admin@salonnear.com / admin123    │
+  │  Platform:     admin@stylo.com / admin123    │
   │                                                  │
   └──────────────────────────────────────────────────┘
     `)

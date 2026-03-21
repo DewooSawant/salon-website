@@ -1,7 +1,7 @@
 {
   "name": "salon-marketplace-server",
   "version": "3.0.0",
-  "description": "SalonNear - Multi-salon marketplace API with PostgreSQL + PostGIS",
+  "description": "Stylo - Multi-salon marketplace API with PostgreSQL + PostGIS",
   "main": "index.js",
   "type": "module",
   "scripts": {

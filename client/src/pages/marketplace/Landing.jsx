@@ -480,7 +480,7 @@ export default function Landing() {
                 Grow Your Salon Business Online
               </h2>
               <p className="text-lg text-white/80 mb-8 max-w-2xl leading-relaxed">
-                Join SalonNear and get discovered by thousands of customers in your area.
+                Join Stylo and get discovered by thousands of customers in your area.
                 Manage bookings, services, and staff — all from one powerful dashboard.
               </p>
 
@@ -528,10 +528,10 @@ export default function Landing() {
                 <div className="w-9 h-9 rounded-xl bg-brand-gradient-r flex items-center justify-center">
                   <FiScissors className="text-white w-4 h-4" />
                 </div>
-                <span className="text-xl font-bold">SalonNear</span>
+                <span className="text-xl font-bold">Stylo</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-sm leading-relaxed">
-                India's growing salon marketplace. Find, compare, and book the best salons near you in seconds.
+                Book. Style. Shine.. Find, compare, and book the best salons near you in seconds.
               </p>
               <div className="flex gap-3">
                 {trustSignals.map((signal) => (
@@ -563,7 +563,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-            <p>&copy; {new Date().getFullYear()} SalonNear. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} Stylo. All rights reserved.</p>
             <p className="flex items-center gap-1">Made with <FiHeart className="text-pink-500 w-3.5 h-3.5" /> in Pune, India</p>
           </div>
         </div>

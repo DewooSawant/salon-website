@@ -1,6 +1,6 @@
 {
-  "name": "SalonNear - Book Salons Near You",
-  "short_name": "SalonNear",
+  "name": "Stylo - Book Salons Near You",
+  "short_name": "Stylo",
   "description": "Find and book the best salons near you. Compare prices, read reviews, and book instantly.",
   "start_url": "/",
   "display": "standalone",

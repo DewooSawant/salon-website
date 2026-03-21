@@ -146,7 +146,7 @@ async function sendViaTwilio(phone, otp) {
     body: new URLSearchParams({
       To: `+91${phone}`,
       From: process.env.TWILIO_FROM,
-      Body: `Your SalonNear verification code is: ${otp}. Valid for 5 minutes.`,
+      Body: `Your Stylo verification code is: ${otp}. Valid for 5 minutes.`,
     }),
   })
   if (!res.ok) throw new Error('Failed to send SMS via Twilio')
@@ -162,7 +162,7 @@ async function sendViaTextlocal(phone, otp) {
       apikey: process.env.TEXTLOCAL_API_KEY,
       numbers: `91${phone}`,
       sender: process.env.TEXTLOCAL_SENDER || 'SALNR',
-      message: `Your SalonNear verification code is: ${otp}. Valid for 5 minutes.`,
+      message: `Your Stylo verification code is: ${otp}. Valid for 5 minutes.`,
     }),
   })
   if (!res.ok) throw new Error('Failed to send SMS via Textlocal')

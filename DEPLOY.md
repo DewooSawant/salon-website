@@ -1,4 +1,4 @@
-# SalonNear - Deployment Guide
+# Stylo - Deployment Guide
 
 ## Architecture
 ```
@@ -47,12 +47,12 @@ node db/setup_v2_pg.js
    ```
    VITE_API_URL=https://your-railway-url.up.railway.app/api
    ```
-5. Deploy! Vercel gives you a URL like `salonnear.vercel.app`
+5. Deploy! Vercel gives you a URL like `stylo.vercel.app`
 
 ## Step 3: Connect Domain (Optional - ~₹800/year)
 
 1. Buy a domain (GoDaddy, Namecheap, or Google Domains)
-   - Suggestions: salonnear.in, salonnear.co.in
+   - Suggestions: stylo.in, stylo.co.in
 2. In Vercel: Settings > Domains > Add your domain
 3. Update DNS records as shown by Vercel
 4. Update Railway FRONTEND_URL to include your domain

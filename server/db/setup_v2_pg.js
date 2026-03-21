@@ -17,7 +17,7 @@ async function setup() {
   })
 
   try {
-    console.log('\n  Setting up SalonNear Marketplace (PostgreSQL + PostGIS)...\n')
+    console.log('\n  Setting up Stylo Marketplace (PostgreSQL + PostGIS)...\n')
 
     await adminClient.connect()
 
@@ -72,7 +72,7 @@ async function setup() {
 
     console.log(`
   ┌──────────────────────────────────────────────────┐
-  │  SalonNear Marketplace - Setup Complete           │
+  │  Stylo Marketplace - Setup Complete           │
   │  PostgreSQL + PostGIS                             │
   │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━             │
   │                                                   │
@@ -87,7 +87,7 @@ async function setup() {
   │  Credentials:                                     │
   │  Salon Owner: rajesh@glamourcuts.com / admin123   │
   │  Customer:    +919999900001 / customer123          │
-  │  Platform:    admin@salonnear.com / admin123       │
+  │  Platform:    admin@stylo.com / admin123       │
   │                                                   │
   └──────────────────────────────────────────────────┘
     `)

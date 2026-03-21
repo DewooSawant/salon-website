@@ -38,7 +38,7 @@ export default function MarketplaceNavbar({ transparent = false }) {
                 <FiScissors className="text-white w-4 h-4" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-brand-700 to-accent-600 bg-clip-text text-transparent">
-                SalonNear
+                Stylo
               </span>
             </Link>
 

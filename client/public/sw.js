@@ -1,4 +1,4 @@
-const CACHE_NAME = 'salonnear-v1'
+const CACHE_NAME = 'stylo-v1'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -50,7 +50,7 @@ self.addEventListener('fetch', (event) => {
 // Push notification handler
 self.addEventListener('push', (event) => {
   const data = event.data?.json() || {}
-  const title = data.title || 'SalonNear'
+  const title = data.title || 'Stylo'
   const options = {
     body: data.body || 'You have a new notification',
     icon: '/icons/icon-192.png',
