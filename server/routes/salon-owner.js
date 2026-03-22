@@ -348,13 +348,16 @@ router.get('/bookings', authenticateSalonOwner, async (req, res) => {
     params.push(parseInt(limit), offset)
 
     const [bookings] = await db.query(`
-      SELECT b.*,st.name as stylist_name FROM bookings b LEFT JOIN stylists st ON st.id=b.stylist_id
-      WHERE b.salon_id=$1 ${filters} ORDER BY b.booking_date DESC,b.start_time DESC LIMIT $${idx} OFFSET $${idx+1}`, params)
+      SELECT b.*, st.name as stylist_name,
+        COALESCE(json_agg(json_build_object('service_name', bs.service_name, 'service_price', bs.service_price, 'service_duration', bs.service_duration))
+          FILTER (WHERE bs.id IS NOT NULL), '[]') AS services
+      FROM bookings b
+      LEFT JOIN stylists st ON st.id = b.stylist_id
+      LEFT JOIN booking_services bs ON bs.booking_id = b.id
+      WHERE b.salon_id=$1 ${filters}
+      GROUP BY b.id, st.name
+      ORDER BY b.booking_date DESC, b.start_time DESC LIMIT $${idx} OFFSET $${idx+1}`, params)
 
-    for (const b of bookings) {
-      const [svcs] = await db.query('SELECT * FROM booking_services WHERE booking_id=$1', [b.id])
-      b.services = svcs
-    }
     res.json({ bookings })
   } catch (error) { res.status(500).json({ error: 'Failed to fetch bookings' }) }
 })
@@ -463,22 +466,19 @@ router.get('/today', authenticateSalonOwner, async (req, res) => {
   try {
     const sid = req.user.salon_id
 
-    // All today's bookings
-    const [bookings] = await db.query(`
-      SELECT b.*, st.name as stylist_name
-      FROM bookings b LEFT JOIN stylists st ON st.id = b.stylist_id
-      WHERE b.salon_id = $1 AND b.booking_date = CURRENT_DATE
-      AND b.status != 'cancelled'
-      ORDER BY b.start_time ASC`, [sid])
-
-    // Load services for each
-    for (const b of bookings) {
-      const [svcs] = await db.query('SELECT * FROM booking_services WHERE booking_id=$1', [b.id])
-      b.services = svcs
-    }
-
-    // Stylist status
-    const [stylists] = await db.query('SELECT id, name, avatar_emoji, role FROM stylists WHERE salon_id=$1 AND is_active=TRUE ORDER BY display_order', [sid])
+    // All today's bookings + services in single query
+    const [[bookings], [stylists]] = await Promise.all([
+      db.query(`
+        SELECT b.*, st.name as stylist_name,
+          COALESCE(json_agg(json_build_object('service_name', bs.service_name, 'service_price', bs.service_price))
+            FILTER (WHERE bs.id IS NOT NULL), '[]') AS services
+        FROM bookings b LEFT JOIN stylists st ON st.id = b.stylist_id
+        LEFT JOIN booking_services bs ON bs.booking_id = b.id
+        WHERE b.salon_id = $1 AND b.booking_date = CURRENT_DATE AND b.status != 'cancelled'
+        GROUP BY b.id, st.name
+        ORDER BY b.start_time ASC`, [sid]),
+      db.query('SELECT id, name, avatar_emoji, role FROM stylists WHERE salon_id=$1 AND is_active=TRUE ORDER BY display_order', [sid]),
+    ])
     const now = new Date()
     const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:00`
 
@@ -615,10 +615,10 @@ router.get('/notifications', authenticateSalonOwner, async (req, res) => {
     query += ' ORDER BY created_at DESC LIMIT $2'
     params.push(parseInt(limit))
 
-    const [notifications] = await db.query(query, params)
-    const [[{ count: unreadCount }]] = await db.query(
-      'SELECT COUNT(*) as count FROM notifications WHERE salon_id = $1 AND is_read = FALSE', [sid]
-    )
+    const [[notifications], [[{ count: unreadCount }]]] = await Promise.all([
+      db.query(query, params),
+      db.query('SELECT COUNT(*) as count FROM notifications WHERE salon_id = $1 AND is_read = FALSE', [sid]),
+    ])
 
     res.json({ notifications, unread_count: parseInt(unreadCount) })
   } catch (error) {
@@ -870,30 +870,30 @@ router.get('/staff-payments', authenticateSalonOwner, async (req, res) => {
     const month = parseInt(req.query.month) || (now.getMonth() + 1)
     const year = parseInt(req.query.year) || now.getFullYear()
 
-    // Get all stylists with their booking performance for the month
-    const [stylists] = await db.query(`
-      SELECT
-        s.id, s.name, s.avatar_emoji, s.role, s.phone,
-        s.pay_type, s.monthly_salary, s.commission_rate,
-        COUNT(b.id) AS total_bookings,
-        COALESCE(SUM(b.final_price), 0) AS revenue_generated,
-        COALESCE(ROUND(SUM(b.final_price) * s.commission_rate / 100, 0), 0) AS commission_earned,
-        COALESCE(ROUND(AVG(b.final_price), 0), 0) AS avg_ticket
-      FROM stylists s
-      LEFT JOIN bookings b ON b.stylist_id = s.id AND b.salon_id = $1
-        AND b.status IN ('completed', 'confirmed')
-        AND EXTRACT(MONTH FROM b.booking_date) = $2
-        AND EXTRACT(YEAR FROM b.booking_date) = $3
-      WHERE s.salon_id = $1 AND s.is_active = TRUE
-      GROUP BY s.id
-      ORDER BY s.name
-    `, [salonId, month, year])
-
-    // Get existing payment records for this month
-    const [payments] = await db.query(
-      `SELECT * FROM staff_payments WHERE salon_id = $1 AND month = $2 AND year = $3`,
-      [salonId, month, year]
-    )
+    // Run both queries in parallel
+    const [[stylists], [payments]] = await Promise.all([
+      db.query(`
+        SELECT
+          s.id, s.name, s.avatar_emoji, s.role, s.phone,
+          s.pay_type, s.monthly_salary, s.commission_rate,
+          COUNT(b.id) AS total_bookings,
+          COALESCE(SUM(b.final_price), 0) AS revenue_generated,
+          COALESCE(ROUND(SUM(b.final_price) * s.commission_rate / 100, 0), 0) AS commission_earned,
+          COALESCE(ROUND(AVG(b.final_price), 0), 0) AS avg_ticket
+        FROM stylists s
+        LEFT JOIN bookings b ON b.stylist_id = s.id AND b.salon_id = $1
+          AND b.status IN ('completed', 'confirmed')
+          AND EXTRACT(MONTH FROM b.booking_date) = $2
+          AND EXTRACT(YEAR FROM b.booking_date) = $3
+        WHERE s.salon_id = $1 AND s.is_active = TRUE
+        GROUP BY s.id
+        ORDER BY s.name
+      `, [salonId, month, year]),
+      db.query(
+        `SELECT * FROM staff_payments WHERE salon_id = $1 AND month = $2 AND year = $3`,
+        [salonId, month, year]
+      ),
+    ])
     const paymentMap = {}
     payments.forEach(p => { paymentMap[p.stylist_id] = p })
 
