@@ -29,6 +29,11 @@ export default function SalonOwnerWalkin() {
 
   // Success state
   const [lastBill, setLastBill] = useState(null)
+  // Customer autocomplete
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchTimer = useRef(null)
+  const suggestRef = useRef(null)
 
   const nameRef = useRef(null)
 
@@ -50,6 +55,35 @@ export default function SalonOwnerWalkin() {
     finally { setLoading(false) }
   }
 
+  // Customer autocomplete search
+  const searchCustomers = (query) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    if (!query || query.length < 2) { setSuggestions([]); setShowSuggestions(false); return }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await api.get('/salon-owner/customers/search', { params: { q: query } })
+        setSuggestions(res.data.results || [])
+        setShowSuggestions(res.data.results?.length > 0)
+      } catch { setSuggestions([]) }
+    }, 300)
+  }
+
+  const selectCustomer = (customer) => {
+    setCustomerName(customer.name)
+    setCustomerPhone(customer.phone)
+    setShowSuggestions(false)
+    setSuggestions([])
+  }
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (suggestRef.current && !suggestRef.current.contains(e.target)) setShowSuggestions(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
   const toggleService = (svc) => {
     setSelectedServices(prev =>
       prev.find(s => s.id === svc.id)
@@ -59,7 +93,8 @@ export default function SalonOwnerWalkin() {
   }
 
   const totalPrice = selectedServices.reduce((sum, s) => sum + parseFloat(s.discounted_price || s.price), 0)
-  const discountAmt = parseFloat(discount) || 0
+  const discountPct = Math.min(parseFloat(discount) || 0, 100)
+  const discountAmt = Math.round(totalPrice * discountPct / 100)
   const finalPrice = Math.max(0, totalPrice - discountAmt)
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration, 0)
 
@@ -153,19 +188,50 @@ export default function SalonOwnerWalkin() {
           )}
 
           {/* Customer Info */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-gray-100 p-5" ref={suggestRef}>
             <h3 className="font-bold text-gray-900 mb-3">Customer</h3>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid sm:grid-cols-2 gap-3 relative">
               <div className="relative">
                 <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input ref={nameRef} type="text" value={customerName} onChange={e => setCustomerName(e.target.value)}
+                <input ref={nameRef} type="text" value={customerName}
+                  onChange={e => { setCustomerName(e.target.value); searchCustomers(e.target.value) }}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true) }}
                   placeholder="Customer Name *" className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-brand-400 text-gray-700" />
               </div>
               <div className="relative">
                 <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)}
+                <input type="tel" value={customerPhone}
+                  onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setCustomerPhone(v); searchCustomers(v) }}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true) }}
                   placeholder="Phone (optional)" className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl outline-none focus:border-brand-400 text-gray-700" />
+                {customerPhone.length === 10 && (
+                  <FiCheck className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                )}
               </div>
+
+              {/* Autocomplete dropdown */}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-brand-200 shadow-xl z-20 overflow-hidden">
+                  <div className="px-3 py-1.5 bg-brand-50 border-b border-brand-100">
+                    <p className="text-[10px] font-bold text-brand-600 uppercase">Returning Customers</p>
+                  </div>
+                  {suggestions.map((c, i) => (
+                    <button key={i} onClick={() => selectCustomer(c)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-brand-50 transition text-left border-b border-gray-50 last:border-0">
+                      <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm font-bold text-brand-700 shrink-0">
+                        {c.name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
+                        <p className="text-xs text-gray-500">{c.phone}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-bold text-brand-600">{c.visits} visits</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -276,13 +342,13 @@ export default function SalonOwnerWalkin() {
                   {/* Discount */}
                   <div className="flex items-center gap-2">
                     <FiPercent className="w-4 h-4 text-gray-400 shrink-0" />
-                    <input type="number" value={discount} onChange={e => setDiscount(e.target.value)}
-                      placeholder="Discount ₹" className="flex-1 p-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-400 text-gray-700" />
+                    <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} min="0" max="100"
+                      placeholder="Discount %" className="flex-1 p-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-brand-400 text-gray-700" />
                   </div>
 
                   {discountAmt > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
-                      <span>Discount</span>
+                      <span>Discount ({discountPct}%)</span>
                       <span>-₹{discountAmt}</span>
                     </div>
                   )}

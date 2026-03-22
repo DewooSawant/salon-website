@@ -138,6 +138,127 @@ router.get('/dashboard', authenticateSalonOwner, async (req, res) => {
   }
 })
 
+// GET /api/salon-owner/analytics - Detailed analytics
+router.get('/analytics', authenticateSalonOwner, async (req, res) => {
+  try {
+    const sid = req.user.salon_id
+    const { period } = req.query // '7d', '30d', 'month'
+    const days = period === '30d' ? 30 : period === 'month' ? 30 : 7
+
+    // 1. Daily revenue for chart (last N days)
+    const [dailyRevenue] = await db.query(`
+      SELECT d::date AS date,
+             COALESCE(SUM(b.final_price), 0) AS revenue,
+             COUNT(b.id) AS bookings
+      FROM generate_series(CURRENT_DATE - $2::int + 1, CURRENT_DATE, '1 day') d
+      LEFT JOIN bookings b ON b.booking_date = d::date AND b.salon_id = $1
+        AND b.status IN ('completed', 'confirmed')
+      GROUP BY d::date ORDER BY d::date
+    `, [sid, days])
+
+    // 2. Top services by revenue
+    const [topServices] = await db.query(`
+      SELECT bs.service_name AS name, COUNT(*) AS bookings,
+             SUM(bs.service_price) AS revenue
+      FROM booking_services bs
+      JOIN bookings b ON b.id = bs.booking_id
+      WHERE b.salon_id = $1 AND b.status IN ('completed', 'confirmed')
+        AND b.booking_date >= CURRENT_DATE - $2::int
+      GROUP BY bs.service_name
+      ORDER BY revenue DESC LIMIT 8
+    `, [sid, days])
+
+    // 3. Top customers by spend
+    const [topCustomers] = await db.query(`
+      SELECT customer_name AS name, customer_phone AS phone,
+             COUNT(*) AS visits, SUM(final_price) AS total_spent
+      FROM bookings
+      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+        AND booking_date >= CURRENT_DATE - $2::int
+        AND customer_phone != 'walk-in'
+      GROUP BY customer_name, customer_phone
+      ORDER BY total_spent DESC LIMIT 5
+    `, [sid, days])
+
+    // 4. Walk-in vs Online split
+    const [channelSplit] = await db.query(`
+      SELECT
+        SUM(CASE WHEN booking_code LIKE 'WI%' THEN 1 ELSE 0 END) AS walkin,
+        SUM(CASE WHEN booking_code NOT LIKE 'WI%' THEN 1 ELSE 0 END) AS online,
+        COUNT(*) AS total
+      FROM bookings
+      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+        AND booking_date >= CURRENT_DATE - $2::int
+    `, [sid, days])
+
+    // 5. Payment method breakdown
+    const [paymentSplit] = await db.query(`
+      SELECT payment_method, COUNT(*) AS count, SUM(final_price) AS amount
+      FROM bookings
+      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+        AND booking_date >= CURRENT_DATE - $2::int
+      GROUP BY payment_method ORDER BY amount DESC
+    `, [sid, days])
+
+    // 6. Peak hours (hour of day distribution)
+    const [peakHours] = await db.query(`
+      SELECT EXTRACT(HOUR FROM start_time)::int AS hour, COUNT(*) AS count
+      FROM bookings
+      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+        AND booking_date >= CURRENT_DATE - $2::int
+      GROUP BY hour ORDER BY hour
+    `, [sid, days])
+
+    // 7. Stylist performance
+    const [stylistPerf] = await db.query(`
+      SELECT s.name, s.avatar_emoji, COUNT(b.id) AS bookings,
+             COALESCE(SUM(b.final_price), 0) AS revenue
+      FROM stylists s
+      LEFT JOIN bookings b ON b.stylist_id = s.id AND b.salon_id = $1
+        AND b.status IN ('completed', 'confirmed')
+        AND b.booking_date >= CURRENT_DATE - $2::int
+      WHERE s.salon_id = $1 AND s.is_active = TRUE
+      GROUP BY s.id ORDER BY revenue DESC
+    `, [sid, days])
+
+    // 8. Period comparison (this period vs last period)
+    const [currentPeriod] = await db.query(`
+      SELECT COALESCE(SUM(final_price), 0) AS revenue, COUNT(*) AS bookings
+      FROM bookings WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+        AND booking_date >= CURRENT_DATE - $2::int
+    `, [sid, days])
+    const [prevPeriod] = await db.query(`
+      SELECT COALESCE(SUM(final_price), 0) AS revenue, COUNT(*) AS bookings
+      FROM bookings WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+        AND booking_date >= CURRENT_DATE - ($2::int * 2) AND booking_date < CURRENT_DATE - $2::int
+    `, [sid, days])
+
+    const cur = currentPeriod[0] || {}
+    const prev = prevPeriod[0] || {}
+    const revGrowth = prev.revenue > 0 ? Math.round(((cur.revenue - prev.revenue) / prev.revenue) * 100) : null
+    const bookGrowth = prev.bookings > 0 ? Math.round(((cur.bookings - prev.bookings) / prev.bookings) * 100) : null
+
+    res.json({
+      daily_revenue: dailyRevenue,
+      top_services: topServices,
+      top_customers: topCustomers,
+      channel_split: channelSplit[0] || { walkin: 0, online: 0, total: 0 },
+      payment_split: paymentSplit,
+      peak_hours: peakHours,
+      stylist_performance: stylistPerf,
+      comparison: {
+        current: { revenue: parseFloat(cur.revenue), bookings: parseInt(cur.bookings) },
+        previous: { revenue: parseFloat(prev.revenue), bookings: parseInt(prev.bookings) },
+        revenue_growth: revGrowth,
+        bookings_growth: bookGrowth,
+      }
+    })
+  } catch (error) {
+    console.error('Analytics error:', error)
+    res.status(500).json({ error: 'Failed to load analytics' })
+  }
+})
+
 // GET /api/salon-owner/salon
 router.get('/salon', authenticateSalonOwner, async (req, res) => {
   try {
@@ -607,6 +728,326 @@ router.patch('/bookings/:id/decline', authenticateSalonOwner, async (req, res) =
     res.json({ message: 'Booking declined' })
   } catch (error) {
     res.status(500).json({ error: 'Failed to decline booking' })
+  }
+})
+
+// =====================================================
+// CUSTOMER CRM
+// =====================================================
+
+// GET /api/salon-owner/customers/search - Quick autocomplete for walk-in billing
+router.get('/customers/search', authenticateSalonOwner, async (req, res) => {
+  try {
+    const salonId = req.user.salon_id
+    const { q } = req.query
+    if (!q || q.length < 2) return res.json({ results: [] })
+
+    const isPhone = /^\d+$/.test(q)
+    const [results] = await db.query(`
+      SELECT customer_name AS name, customer_phone AS phone,
+             COUNT(*) AS visits, MAX(booking_date) AS last_visit
+      FROM bookings
+      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+        AND customer_phone != 'walk-in'
+        AND ${isPhone ? 'customer_phone LIKE $2' : 'customer_name ILIKE $2'}
+      GROUP BY customer_phone, customer_name
+      ORDER BY MAX(booking_date) DESC
+      LIMIT 5
+    `, [salonId, isPhone ? `${q}%` : `%${q}%`])
+
+    res.json({ results })
+  } catch (error) {
+    res.status(500).json({ results: [] })
+  }
+})
+
+// GET /api/salon-owner/customers - Customer list with stats
+router.get('/customers', authenticateSalonOwner, async (req, res) => {
+  try {
+    const salonId = req.user.salon_id
+    const { search, segment, sort } = req.query
+
+    let query = `
+      SELECT
+        customer_phone AS phone,
+        customer_name AS name,
+        customer_id,
+        COUNT(*) AS total_visits,
+        SUM(final_price) AS total_spent,
+        MAX(booking_date) AS last_visit,
+        MIN(booking_date) AS first_visit,
+        ROUND(AVG(final_price), 0) AS avg_bill,
+        MODE() WITHIN GROUP (ORDER BY payment_method) AS preferred_payment
+      FROM bookings
+      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
+      GROUP BY customer_phone, customer_name, customer_id
+    `
+    const params = [salonId]
+
+    if (search) {
+      query += ` HAVING customer_name ILIKE $2 OR customer_phone ILIKE $2`
+      params.push(`%${search}%`)
+    }
+
+    // Sort
+    if (sort === 'spent') query += ` ORDER BY total_spent DESC`
+    else if (sort === 'visits') query += ` ORDER BY total_visits DESC`
+    else if (sort === 'name') query += ` ORDER BY customer_name ASC`
+    else query += ` ORDER BY last_visit DESC`
+
+    const [customers] = await db.query(query, params)
+
+    // Apply segment filter in JS (easier than complex SQL)
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000)
+    let filtered = customers
+
+    if (segment === 'frequent') filtered = customers.filter(c => c.total_visits >= 5)
+    else if (segment === 'inactive') filtered = customers.filter(c => new Date(c.last_visit) < thirtyDaysAgo)
+    else if (segment === 'new') filtered = customers.filter(c => c.total_visits === 1)
+    else if (segment === 'vip') filtered = customers.filter(c => parseFloat(c.total_spent) >= 5000)
+
+    // Summary stats
+    const summary = {
+      total_customers: customers.length,
+      frequent: customers.filter(c => c.total_visits >= 5).length,
+      inactive: customers.filter(c => new Date(c.last_visit) < thirtyDaysAgo).length,
+      new_this_month: customers.filter(c => {
+        const first = new Date(c.first_visit)
+        return first.getMonth() === now.getMonth() && first.getFullYear() === now.getFullYear()
+      }).length,
+    }
+
+    res.json({ customers: filtered, summary })
+  } catch (error) {
+    console.error('CRM error:', error)
+    res.status(500).json({ error: 'Failed to load customers' })
+  }
+})
+
+// GET /api/salon-owner/customers/:phone/history - Single customer history
+router.get('/customers/:phone/history', authenticateSalonOwner, async (req, res) => {
+  try {
+    const salonId = req.user.salon_id
+    const phone = req.params.phone
+
+    const [bookings] = await db.query(`
+      SELECT b.id, b.booking_code, b.booking_date, b.start_time, b.final_price,
+             b.status, b.payment_method, b.customer_name, b.stylist_id,
+             s.name AS stylist_name,
+             COALESCE(json_agg(json_build_object('name', bs.service_name, 'price', bs.service_price))
+               FILTER (WHERE bs.id IS NOT NULL), '[]') AS services
+      FROM bookings b
+      LEFT JOIN stylists s ON s.id = b.stylist_id
+      LEFT JOIN booking_services bs ON bs.booking_id = b.id
+      WHERE b.salon_id = $1 AND b.customer_phone = $2
+      GROUP BY b.id, s.name
+      ORDER BY b.booking_date DESC, b.start_time DESC
+      LIMIT 50
+    `, [salonId, phone])
+
+    // Aggregate stats
+    const completed = bookings.filter(b => b.status === 'completed' || b.status === 'confirmed')
+    const serviceCounts = {}
+    completed.forEach(b => {
+      if (Array.isArray(b.services)) {
+        b.services.forEach(s => {
+          serviceCounts[s.name] = (serviceCounts[s.name] || 0) + 1
+        })
+      }
+    })
+    const topServices = Object.entries(serviceCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }))
+
+    res.json({
+      customer: {
+        name: bookings[0]?.customer_name || '',
+        phone,
+        total_visits: completed.length,
+        total_spent: completed.reduce((sum, b) => sum + parseFloat(b.final_price), 0),
+        first_visit: completed.length > 0 ? completed[completed.length - 1].booking_date : null,
+        last_visit: completed.length > 0 ? completed[0].booking_date : null,
+        top_services: topServices,
+      },
+      bookings,
+    })
+  } catch (error) {
+    console.error('Customer history error:', error)
+    res.status(500).json({ error: 'Failed to load customer history' })
+  }
+})
+
+// =====================================================
+// STAFF MANAGEMENT - Salary, Commission & Payments
+// =====================================================
+
+// PATCH /api/salon-owner/stylists/:id/pay - Update pay settings
+router.patch('/stylists/:id/pay', authenticateSalonOwner, async (req, res) => {
+  try {
+    const { pay_type, monthly_salary, commission_rate } = req.body
+    if (pay_type && !['salary', 'commission', 'both'].includes(pay_type)) {
+      return res.status(400).json({ error: 'pay_type must be salary, commission, or both' })
+    }
+    if (commission_rate !== undefined && (commission_rate < 0 || commission_rate > 100)) {
+      return res.status(400).json({ error: 'Commission rate must be 0-100%' })
+    }
+    await db.query(
+      `UPDATE stylists SET
+        pay_type = COALESCE($1, pay_type),
+        monthly_salary = COALESCE($2, monthly_salary),
+        commission_rate = COALESCE($3, commission_rate)
+       WHERE id = $4 AND salon_id = $5`,
+      [pay_type, monthly_salary, commission_rate, req.params.id, req.user.salon_id]
+    )
+    res.json({ message: 'Pay settings updated' })
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update pay settings' })
+  }
+})
+
+// GET /api/salon-owner/staff-payments - Staff overview for a month
+router.get('/staff-payments', authenticateSalonOwner, async (req, res) => {
+  try {
+    const salonId = req.user.salon_id
+    const now = new Date()
+    const month = parseInt(req.query.month) || (now.getMonth() + 1)
+    const year = parseInt(req.query.year) || now.getFullYear()
+
+    // Get all stylists with their booking performance for the month
+    const [stylists] = await db.query(`
+      SELECT
+        s.id, s.name, s.avatar_emoji, s.role, s.phone,
+        s.pay_type, s.monthly_salary, s.commission_rate,
+        COUNT(b.id) AS total_bookings,
+        COALESCE(SUM(b.final_price), 0) AS revenue_generated,
+        COALESCE(ROUND(SUM(b.final_price) * s.commission_rate / 100, 0), 0) AS commission_earned,
+        COALESCE(ROUND(AVG(b.final_price), 0), 0) AS avg_ticket
+      FROM stylists s
+      LEFT JOIN bookings b ON b.stylist_id = s.id AND b.salon_id = $1
+        AND b.status IN ('completed', 'confirmed')
+        AND EXTRACT(MONTH FROM b.booking_date) = $2
+        AND EXTRACT(YEAR FROM b.booking_date) = $3
+      WHERE s.salon_id = $1 AND s.is_active = TRUE
+      GROUP BY s.id
+      ORDER BY s.name
+    `, [salonId, month, year])
+
+    // Get existing payment records for this month
+    const [payments] = await db.query(
+      `SELECT * FROM staff_payments WHERE salon_id = $1 AND month = $2 AND year = $3`,
+      [salonId, month, year]
+    )
+    const paymentMap = {}
+    payments.forEach(p => { paymentMap[p.stylist_id] = p })
+
+    // Merge stylist data with payment records
+    const staff = stylists.map(s => {
+      const payment = paymentMap[s.id]
+      const baseSalary = ['salary', 'both'].includes(s.pay_type) ? parseFloat(s.monthly_salary) : 0
+      const commission = ['commission', 'both'].includes(s.pay_type) ? parseFloat(s.commission_earned) : 0
+      return {
+        ...s,
+        base_salary: baseSalary,
+        commission_amount: commission,
+        total_payable: payment ? parseFloat(payment.total_payable) : baseSalary + commission,
+        bonus: payment ? parseFloat(payment.bonus) : 0,
+        deductions: payment ? parseFloat(payment.deductions) : 0,
+        payment_status: payment?.status || 'pending',
+        payment_id: payment?.id || null,
+        paid_date: payment?.paid_date || null,
+        payment_method: payment?.payment_method || null,
+        notes: payment?.notes || '',
+      }
+    })
+
+    const totals = {
+      total_salary: staff.reduce((s, st) => s + st.base_salary, 0),
+      total_commission: staff.reduce((s, st) => s + st.commission_amount, 0),
+      total_payable: staff.reduce((s, st) => s + st.total_payable, 0),
+      total_revenue: staff.reduce((s, st) => s + parseFloat(st.revenue_generated), 0),
+      paid_count: staff.filter(s => s.payment_status === 'paid').length,
+      pending_count: staff.filter(s => s.payment_status === 'pending').length,
+    }
+
+    res.json({ staff, totals, month, year })
+  } catch (error) {
+    console.error('Staff payments error:', error)
+    res.status(500).json({ error: 'Failed to load staff payments' })
+  }
+})
+
+// POST /api/salon-owner/staff-payments/:stylistId - Create/update payment record
+router.post('/staff-payments/:stylistId', authenticateSalonOwner, async (req, res) => {
+  try {
+    const salonId = req.user.salon_id
+    const stylistId = req.params.stylistId
+    const { month, year, base_salary, commission_earned, bonus, deductions, notes, status, payment_method } = req.body
+
+    const total = (parseFloat(base_salary) || 0) + (parseFloat(commission_earned) || 0)
+      + (parseFloat(bonus) || 0) - (parseFloat(deductions) || 0)
+
+    const [result] = await db.query(`
+      INSERT INTO staff_payments (stylist_id, salon_id, month, year, base_salary, commission_earned, bonus, deductions, total_payable, status, payment_method, notes, paid_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      ON CONFLICT (stylist_id, month, year) DO UPDATE SET
+        base_salary = $5, commission_earned = $6, bonus = $7, deductions = $8,
+        total_payable = $9, status = $10, payment_method = $11, notes = $12,
+        paid_date = $13, updated_at = NOW()
+      RETURNING *
+    `, [
+      stylistId, salonId, month, year,
+      base_salary || 0, commission_earned || 0, bonus || 0, deductions || 0,
+      total, status || 'pending', payment_method || null, notes || null,
+      status === 'paid' ? new Date() : null
+    ])
+
+    res.json({ payment: result[0], message: status === 'paid' ? 'Marked as paid' : 'Payment updated' })
+  } catch (error) {
+    console.error('Payment save error:', error)
+    res.status(500).json({ error: 'Failed to save payment' })
+  }
+})
+
+// GET /api/salon-owner/staff-payments/:stylistId/slip - Salary slip data
+router.get('/staff-payments/:stylistId/slip', authenticateSalonOwner, async (req, res) => {
+  try {
+    const salonId = req.user.salon_id
+    const stylistId = req.params.stylistId
+    const month = parseInt(req.query.month)
+    const year = parseInt(req.query.year)
+
+    const [stylistRows] = await db.query(
+      'SELECT s.*, sal.name AS salon_name, sal.address, sal.city, sal.phone AS salon_phone FROM stylists s JOIN salons sal ON sal.id = s.salon_id WHERE s.id = $1 AND s.salon_id = $2',
+      [stylistId, salonId]
+    )
+    if (stylistRows.length === 0) return res.status(404).json({ error: 'Stylist not found' })
+
+    const [paymentRows] = await db.query(
+      'SELECT * FROM staff_payments WHERE stylist_id = $1 AND month = $2 AND year = $3',
+      [stylistId, month, year]
+    )
+
+    // Booking breakdown for the month
+    const [bookings] = await db.query(`
+      SELECT COUNT(*) AS total_bookings, COALESCE(SUM(final_price), 0) AS total_revenue
+      FROM bookings
+      WHERE stylist_id = $1 AND salon_id = $2
+        AND status IN ('completed', 'confirmed')
+        AND EXTRACT(MONTH FROM booking_date) = $3
+        AND EXTRACT(YEAR FROM booking_date) = $4
+    `, [stylistId, salonId, month, year])
+
+    res.json({
+      stylist: stylistRows[0],
+      payment: paymentRows[0] || null,
+      performance: bookings[0],
+      month, year,
+    })
+  } catch (error) {
+    console.error('Salary slip error:', error)
+    res.status(500).json({ error: 'Failed to generate salary slip' })
   }
 })
 

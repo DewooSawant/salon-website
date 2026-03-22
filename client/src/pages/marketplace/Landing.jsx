@@ -271,6 +271,41 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* Salon Owner Quick Access Banner */}
+      {(() => { const isSalonOwner = !!localStorage.getItem('salonOwnerToken'); return (
+      <section className="px-4 py-3 bg-gradient-to-r from-brand-50 to-accent-50 border-y border-brand-100">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-lg shrink-0">💈</span>
+            <p className="text-sm text-gray-700 truncate">
+              {isSalonOwner ? (
+                <span className="font-semibold">Welcome back! Go to your dashboard</span>
+              ) : (
+                <>
+                  <span className="font-semibold">Own a salon?</span>
+                  <span className="hidden sm:inline"> Manage bookings, billing & grow your business</span>
+                </>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              to={isSalonOwner ? "/salon-owner/dashboard" : "/salon-owner/login"}
+              className="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-brand-700 transition whitespace-nowrap"
+            >
+              {isSalonOwner ? 'My Dashboard' : 'Salon Login'}
+            </Link>
+            {!isSalonOwner && <Link
+              to="/salon-owner/register"
+              className="hidden sm:inline-block px-4 py-2 border border-brand-300 text-brand-700 rounded-xl text-sm font-semibold hover:bg-brand-50 transition whitespace-nowrap"
+            >
+              Register Free
+            </Link>}
+          </div>
+        </div>
+      </section>
+      )})()}
+
       {/* Stats Bar */}
       <section className="py-8 px-4 border-y border-gray-100 bg-gray-50/50">
         <div className="max-w-6xl mx-auto">

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FiGrid, FiScissors, FiUsers, FiCalendar, FiStar, FiSettings, FiLogOut, FiArrowLeft, FiMenu, FiX, FiDollarSign, FiBarChart2 } from 'react-icons/fi'
+import { FiGrid, FiScissors, FiUsers, FiCalendar, FiStar, FiSettings, FiLogOut, FiArrowLeft, FiMenu, FiX, FiDollarSign, FiBarChart2, FiUserCheck, FiCreditCard, FiTrendingUp } from 'react-icons/fi'
 import NotificationBell from './NotificationBell'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
@@ -10,9 +10,12 @@ const sidebarLinks = [
   { to: '/salon-owner/dashboard', label: 'Dashboard', icon: FiGrid },
   { to: '/salon-owner/walkin', label: 'Walk-in Billing', icon: FiDollarSign, highlight: true },
   { to: '/salon-owner/bookings', label: 'Bookings', icon: FiCalendar },
+  { to: '/salon-owner/analytics', label: 'Analytics', icon: FiTrendingUp },
   { to: '/salon-owner/daily-report', label: 'Daily Register', icon: FiBarChart2 },
+  { to: '/salon-owner/customers', label: 'Customers', icon: FiUserCheck },
   { to: '/salon-owner/services', label: 'Services', icon: FiScissors },
   { to: '/salon-owner/stylists', label: 'Stylists', icon: FiUsers },
+  { to: '/salon-owner/staff-pay', label: 'Staff Pay', icon: FiCreditCard },
   { to: '/salon-owner/reviews', label: 'Reviews', icon: FiStar },
   { to: '/salon-owner/settings', label: 'Settings', icon: FiSettings },
 ]

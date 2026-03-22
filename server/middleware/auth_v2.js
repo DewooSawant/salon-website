@@ -4,7 +4,8 @@ import db from '../db/config_pg.js'
 const JWT_SECRET = process.env.JWT_SECRET || 'salon-marketplace-secret-change-in-production'
 
 export function generateToken(payload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30d' })
+  const expiry = payload.type === 'salon_owner' ? '24h' : '7d'
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiry })
 }
 
 export function verifyToken(token) {

@@ -154,11 +154,16 @@ router.get('/:slug/available-slots/:date', async (req, res) => {
 
     if (!workingDays.includes(dayOfWeek)) return res.json({ slots: [], message: 'Salon is closed on this day' })
 
+    // Get all bookings for the day (with stylist info)
     const bookingParams = [salon.id, date]
-    let bookingQuery = `SELECT start_time, end_time FROM bookings WHERE salon_id = $1 AND booking_date = $2 AND status NOT IN ('cancelled','no_show')`
+    let bookingQuery = `SELECT start_time, end_time, stylist_id FROM bookings WHERE salon_id = $1 AND booking_date = $2 AND status NOT IN ('cancelled','no_show')`
     if (stylist_id) { bookingQuery += ' AND stylist_id = $3'; bookingParams.push(stylist_id) }
 
     const [bookings] = await db.query(bookingQuery, bookingParams)
+
+    // Count active stylists for capacity check
+    const [stylistRows] = await db.query('SELECT COUNT(*) AS count FROM stylists WHERE salon_id = $1 AND is_active = TRUE', [salon.id])
+    const totalStylists = Math.max(parseInt(stylistRows[0]?.count) || 1, 1)
 
     const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m }
     const toTime = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
@@ -170,12 +175,21 @@ router.get('/:slug/available-slots/:date', async (req, res) => {
     const lunchStart = toMin(salon.lunch_start)
     const lunchEnd = toMin(salon.lunch_end)
 
+    // If today, filter out past time slots (with 15 min buffer)
+    const today = new Date().toISOString().split('T')[0]
+    const isToday = date === today
+    const nowMin = isToday ? (new Date().getHours() * 60 + new Date().getMinutes() + 15) : 0
+
     while (current + slotDuration <= closing) {
       if (current >= lunchStart && current < lunchEnd) { current = lunchEnd; continue }
       const timeStr = toTime(current) + ':00'
       const endStr = toTime(current + slotDuration) + ':00'
-      const isBooked = bookings.some(b => timeStr < b.end_time && endStr > b.start_time)
-      slots.push({ time: toTime(current), end_time: toTime(current + slotDuration), available: !isBooked })
+      const overlapping = bookings.filter(b => timeStr < b.end_time && endStr > b.start_time)
+      // If specific stylist selected: booked if that stylist has overlap
+      // If no stylist selected: booked only if ALL stylists are occupied
+      const isBooked = stylist_id ? overlapping.length > 0 : overlapping.length >= totalStylists
+      const isPast = isToday && current < nowMin
+      slots.push({ time: toTime(current), end_time: toTime(current + slotDuration), available: !isBooked && !isPast })
       current += slotDuration
     }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiCalendar, FiDollarSign, FiClock, FiStar, FiMail, FiExternalLink, FiCopy, FiCheck, FiPlus, FiArrowRight } from 'react-icons/fi'
 import SalonOwnerLayout, { useSalonOwnerApi } from '../../components/marketplace/SalonOwnerLayout'
@@ -36,24 +36,35 @@ export default function SalonOwnerDashboard() {
   const [loading, setLoading] = useState(true)
   // Quick walk-in state
   const [services, setServices] = useState([])
+  const [stylists, setStylists] = useState([])
   const [quickServices, setQuickServices] = useState([])
   const [quickName, setQuickName] = useState('')
+  const [quickPhone, setQuickPhone] = useState('')
+  const [quickStylist, setQuickStylist] = useState(null)
   const [quickPayment, setQuickPayment] = useState('cash')
   const [quickBilling, setQuickBilling] = useState(false)
   const [quickSuccess, setQuickSuccess] = useState(null)
+  // Customer autocomplete
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [activeField, setActiveField] = useState(null) // 'name' or 'phone'
+  const searchTimer = useRef(null)
+  const suggestRef = useRef(null)
 
   useEffect(() => { fetchData() }, [])
 
   const fetchData = async () => {
     try {
-      const [dashRes, salonRes, svcRes] = await Promise.all([
+      const [dashRes, salonRes, svcRes, styRes] = await Promise.all([
         api.get('/salon-owner/dashboard'),
         api.get('/salon-owner/salon'),
         api.get('/salon-owner/services'),
+        api.get('/salon-owner/stylists'),
       ])
       setDashboard(dashRes.data)
       setSalon(salonRes.data.salon)
       setServices(svcRes.data.services || [])
+      setStylists(styRes.data.stylists || [])
     } catch (error) {
       if (error.response?.status === 401) {
         localStorage.removeItem('salonOwnerToken')
@@ -64,6 +75,35 @@ export default function SalonOwnerDashboard() {
       setLoading(false)
     }
   }
+
+  // Customer autocomplete search
+  const searchCustomers = useCallback((query) => {
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    if (!query || query.length < 2) { setSuggestions([]); setShowSuggestions(false); return }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await api.get('/salon-owner/customers/search', { params: { q: query } })
+        setSuggestions(res.data.results || [])
+        setShowSuggestions(res.data.results?.length > 0)
+      } catch { setSuggestions([]) }
+    }, 300)
+  }, [api])
+
+  const selectCustomer = (customer) => {
+    setQuickName(customer.name)
+    setQuickPhone(customer.phone)
+    setShowSuggestions(false)
+    setSuggestions([])
+  }
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (suggestRef.current && !suggestRef.current.contains(e.target)) setShowSuggestions(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const copyLink = () => {
     const url = `${window.location.origin}/salon/${salon?.slug}`
@@ -95,97 +135,191 @@ export default function SalonOwnerDashboard() {
 
       {/* Quick Walk-in Widget */}
       {services.length > 0 && (
-        <div className="bg-white rounded-2xl border-2 border-green-200 p-5 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Quick Walk-in Bill</h2>
-              <p className="text-sm text-gray-500">Tap services, enter name, bill in seconds</p>
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 mb-8 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
+                <FiPlus className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Quick Bill</h2>
+                <p className="text-xs text-gray-500">Tap &rarr; Fill &rarr; Bill</p>
+              </div>
             </div>
-            <Link to="/salon-owner/walkin" className="text-sm text-brand-600 font-medium hover:text-brand-700 flex items-center gap-1">
-              Full POS <FiArrowRight className="w-3 h-3" />
-            </Link>
+            <div className="flex items-center gap-3">
+              {quickServices.length > 0 && (
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-green-700">₹{quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)}</p>
+                  <p className="text-[10px] text-green-600 font-medium">{quickServices.length} service{quickServices.length > 1 ? 's' : ''}</p>
+                </div>
+              )}
+              <Link to="/salon-owner/walkin" className="text-xs text-green-700 font-semibold hover:text-green-800 bg-white/60 px-3 py-1.5 rounded-lg border border-green-200">
+                Full POS <FiArrowRight className="w-3 h-3 inline" />
+              </Link>
+            </div>
           </div>
 
           {quickSuccess ? (
-            <div className="flex items-center justify-between bg-green-50 rounded-xl p-4">
+            <div className="mx-5 mb-5 flex items-center justify-between bg-white rounded-xl p-4 border border-green-200 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <FiCheck className="w-5 h-5 text-green-600" />
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <FiCheck className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-green-800">₹{quickSuccess.final_price} billed!</p>
-                  <p className="text-sm text-green-600">{quickSuccess.customer_name} &bull; {quickSuccess.booking_code}</p>
+                  <p className="text-lg font-bold text-green-800">₹{quickSuccess.final_price} billed!</p>
+                  <p className="text-sm text-green-600">{quickSuccess.customer_name} &bull; <span className="font-mono">{quickSuccess.booking_code}</span></p>
                 </div>
               </div>
-              <button onClick={() => { setQuickSuccess(null); setQuickServices([]); setQuickName(''); setQuickPayment('cash') }}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
-                New Bill
+              <button onClick={() => { setQuickSuccess(null); setQuickServices([]); setQuickName(''); setQuickPhone(''); setQuickStylist(null); setQuickPayment('cash') }}
+                className="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition shadow-md shadow-green-200">
+                + New Bill
               </button>
             </div>
           ) : (
-            <>
-              {/* Service Quick Select - show popular first, then all */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                {services.sort((a, b) => (b.is_popular ? 1 : 0) - (a.is_popular ? 1 : 0)).slice(0, 10).map(svc => {
-                  const selected = quickServices.find(s => s.id === svc.id)
-                  return (
-                    <button key={svc.id}
-                      onClick={() => setQuickServices(prev => selected ? prev.filter(s => s.id !== svc.id) : [...prev, svc])}
-                      className={`px-3 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
-                        selected
-                          ? 'border-green-500 bg-green-50 text-green-700'
-                          : 'border-gray-100 text-gray-700 hover:border-green-200'
-                      }`}
-                    >
-                      {selected && <FiCheck className="w-3 h-3 inline mr-1" />}
-                      {svc.icon} {svc.name} <span className="text-xs opacity-60">₹{svc.discounted_price || svc.price}</span>
-                    </button>
-                  )
-                })}
+            <div className="px-5 pb-5">
+              {/* Step 1: Services - always visible */}
+              <div className="mb-4">
+                <p className="text-[11px] font-bold text-green-700 uppercase tracking-wider mb-2">1. Select Services</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {services.sort((a, b) => (b.is_popular ? 1 : 0) - (a.is_popular ? 1 : 0)).map(svc => {
+                    const selected = quickServices.find(s => s.id === svc.id)
+                    return (
+                      <button key={svc.id}
+                        onClick={() => setQuickServices(prev => selected ? prev.filter(s => s.id !== svc.id) : [...prev, svc])}
+                        className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                          selected
+                            ? 'bg-green-600 text-white shadow-md shadow-green-200 scale-[1.02]'
+                            : 'bg-white text-gray-700 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+                        }`}
+                      >
+                        {svc.icon} {svc.name} <span className={`text-xs ${selected ? 'text-green-100' : 'text-gray-400'}`}>₹{svc.discounted_price || svc.price}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
 
-              {quickServices.length > 0 && (
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* Customer Name */}
-                  <input type="text" value={quickName} onChange={e => setQuickName(e.target.value)}
-                    placeholder="Customer name" className="flex-1 min-w-[140px] px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-green-400 text-gray-700" />
-
-                  {/* Payment pills */}
-                  <div className="flex gap-1">
-                    {[{v:'cash',l:'💵'},{v:'upi',l:'📱'},{v:'card',l:'💳'}].map(p => (
-                      <button key={p.v} onClick={() => setQuickPayment(p.v)}
-                        className={`px-3 py-2.5 rounded-xl text-sm transition ${quickPayment === p.v ? 'bg-green-100 border-2 border-green-400' : 'bg-gray-50 border-2 border-gray-100'}`}>
-                        {p.l}
+              {/* Step 2: Stylist - show after service selected */}
+              {quickServices.length > 0 && stylists.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-[11px] font-bold text-green-700 uppercase tracking-wider mb-2">2. Stylist</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {stylists.filter(s => s.is_active).map(st => (
+                      <button key={st.id}
+                        onClick={() => setQuickStylist(quickStylist === st.id ? null : st.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                          quickStylist === st.id
+                            ? 'bg-green-600 text-white shadow-md shadow-green-200'
+                            : 'bg-white text-gray-700 border border-gray-200 hover:border-green-300'
+                        }`}
+                      >
+                        <span className="text-base">{st.avatar_emoji || '👤'}</span>
+                        {st.name}
                       </button>
                     ))}
                   </div>
-
-                  {/* Total + Bill button */}
-                  <button
-                    onClick={async () => {
-                      if (!quickName.trim()) { toast.error('Enter customer name'); return }
-                      setQuickBilling(true)
-                      try {
-                        const res = await api.post('/salon-owner/walkin', {
-                          customer_name: quickName.trim(),
-                          services: quickServices.map(s => s.id),
-                          payment_method: quickPayment,
-                        })
-                        setQuickSuccess(res.data.booking)
-                        toast.success(`Billed ₹${res.data.booking.final_price}!`)
-                        fetchData() // Refresh dashboard stats
-                      } catch (err) {
-                        toast.error(err.response?.data?.error || 'Failed')
-                      } finally { setQuickBilling(false) }
-                    }}
-                    disabled={quickBilling}
-                    className="px-5 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 transition disabled:opacity-50 whitespace-nowrap"
-                  >
-                    {quickBilling ? '...' : `Bill ₹${quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)}`}
-                  </button>
                 </div>
               )}
-            </>
+
+              {/* Step 3: Customer + Payment + Bill */}
+              {quickServices.length > 0 && (
+                <div>
+                  <p className="text-[11px] font-bold text-green-700 uppercase tracking-wider mb-2">{stylists.length > 0 ? '3' : '2'}. Customer & Payment</p>
+                  <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm" ref={suggestRef}>
+                    {/* Row 1: Name + Phone with autocomplete */}
+                    <div className="flex gap-2 mb-3 relative">
+                      <div className="flex-1 relative">
+                        <input type="text" value={quickName}
+                          onChange={e => { setQuickName(e.target.value); setActiveField('name'); searchCustomers(e.target.value) }}
+                          onFocus={() => { setActiveField('name'); if (suggestions.length > 0) setShowSuggestions(true) }}
+                          placeholder="Customer name *"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-green-400 focus:bg-white text-gray-700 transition" />
+                      </div>
+                      <div className="w-[160px] relative">
+                        <input type="tel" value={quickPhone}
+                          onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setQuickPhone(v); setActiveField('phone'); searchCustomers(v) }}
+                          onFocus={() => { setActiveField('phone'); if (suggestions.length > 0) setShowSuggestions(true) }}
+                          placeholder="Phone"
+                          className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-green-400 focus:bg-white text-gray-700 transition" />
+                        {quickPhone.length === 10 && (
+                          <FiCheck className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+                        )}
+                      </div>
+
+                      {/* Autocomplete dropdown */}
+                      {showSuggestions && suggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-green-200 shadow-xl z-20 overflow-hidden">
+                          <div className="px-3 py-1.5 bg-green-50 border-b border-green-100">
+                            <p className="text-[10px] font-bold text-green-600 uppercase">Returning Customers</p>
+                          </div>
+                          {suggestions.map((c, i) => (
+                            <button key={i} onClick={() => selectCustomer(c)}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-green-50 transition text-left border-b border-gray-50 last:border-0">
+                              <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-sm font-bold text-green-700 shrink-0">
+                                {c.name?.charAt(0)?.toUpperCase()}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
+                                <p className="text-xs text-gray-500">{c.phone}</p>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className="text-xs font-bold text-green-600">{c.visits} visits</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Row 2: Payment + Bill */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        {[{v:'cash',l:'💵',t:'Cash'},{v:'upi',l:'📱',t:'UPI'},{v:'card',l:'💳',t:'Card'}].map(p => (
+                          <button key={p.v} onClick={() => setQuickPayment(p.v)}
+                            className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                              quickPayment === p.v
+                                ? 'bg-green-100 border-2 border-green-400 text-green-700'
+                                : 'bg-gray-50 border-2 border-gray-100 text-gray-500 hover:border-green-200'
+                            }`}>
+                            {p.l} <span className="hidden sm:inline">{p.t}</span>
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={async () => {
+                          if (!quickName.trim()) { toast.error('Enter customer name'); return }
+                          setQuickBilling(true)
+                          try {
+                            const res = await api.post('/salon-owner/walkin', {
+                              customer_name: quickName.trim(),
+                              customer_phone: quickPhone.trim() || undefined,
+                              stylist_id: quickStylist || undefined,
+                              services: quickServices.map(s => s.id),
+                              payment_method: quickPayment,
+                            })
+                            setQuickSuccess(res.data.booking)
+                            toast.success(`Billed ₹${res.data.booking.final_price}!`)
+                            fetchData()
+                          } catch (err) {
+                            toast.error(err.response?.data?.error || 'Failed')
+                          } finally { setQuickBilling(false) }
+                        }}
+                        disabled={quickBilling}
+                        className="flex-1 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 transition disabled:opacity-50 shadow-md shadow-green-200 whitespace-nowrap"
+                      >
+                        {quickBilling ? (
+                          <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          `Bill ₹${quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)}`
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

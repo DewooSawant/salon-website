@@ -1,7 +1,9 @@
 import express from 'express'
 import cors from 'cors'
+import http from 'http'
 import dotenv from 'dotenv'
 import { testConnection } from './db/config_pg.js'
+import { initSocket } from './services/socket.js'
 
 // Legacy routes (single-salon, kept for backward compatibility)
 import authRouter from './routes/auth.js'
@@ -21,10 +23,11 @@ import { authenticateCustomer, optionalAuth } from './middleware/auth_v2.js'
 dotenv.config()
 
 const app = express()
+const server = http.createServer(app)
 const PORT = process.env.PORT || 5000
 
-// Middleware
-app.use(cors({
+// CORS config (shared between Express and Socket.IO)
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true)
@@ -46,8 +49,12 @@ app.use(cors({
     callback(new Error('Not allowed by CORS'))
   },
   credentials: true
-}))
+}
+app.use(cors(corsOptions))
 app.use(express.json())
+
+// Initialize Socket.IO
+initSocket(server, corsOptions)
 
 // Serve uploaded images as static files
 import path from 'path'
@@ -161,7 +168,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' })
 })
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`
   ┌──────────────────────────────────────────────────┐
   │                                                  │

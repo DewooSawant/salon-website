@@ -21,6 +21,9 @@ import SalonOwnerReviews from './pages/marketplace/SalonOwnerReviews'
 import SalonOwnerSettings from './pages/marketplace/SalonOwnerSettings'
 import SalonOwnerWalkin from './pages/marketplace/SalonOwnerWalkin'
 import SalonOwnerDailyReport from './pages/marketplace/SalonOwnerDailyReport'
+import SalonOwnerCustomers from './pages/marketplace/SalonOwnerCustomers'
+import SalonOwnerStaffPay from './pages/marketplace/SalonOwnerStaffPay'
+import SalonOwnerAnalytics from './pages/marketplace/SalonOwnerAnalytics'
 
 // Admin Pages (salon owner dashboard - reuse existing)
 import Login from './pages/admin/Login'
@@ -109,6 +112,9 @@ function AppRoutes() {
       <Route path="/salon-owner/settings" element={<SalonOwnerSettings />} />
       <Route path="/salon-owner/walkin" element={<SalonOwnerWalkin />} />
       <Route path="/salon-owner/daily-report" element={<SalonOwnerDailyReport />} />
+      <Route path="/salon-owner/customers" element={<SalonOwnerCustomers />} />
+      <Route path="/salon-owner/staff-pay" element={<SalonOwnerStaffPay />} />
+      <Route path="/salon-owner/analytics" element={<SalonOwnerAnalytics />} />
 
       {/* ========== ADMIN (legacy salon owner dashboard) ========== */}
       <Route path="/admin" element={<Login />} />

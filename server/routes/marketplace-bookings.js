@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import db, { pool } from '../db/config_pg.js'
 import { authenticateCustomer, optionalAuth } from '../middleware/auth_v2.js'
+import { notifySalon } from '../services/socket.js'
 
 const router = Router()
 
@@ -35,6 +36,19 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
 
     const { salon_id, customer_name, customer_phone, customer_email, stylist_id, booking_date, start_time, services, notes } = req.body
+
+    // Reject past dates
+    const today = new Date().toISOString().split('T')[0]
+    if (booking_date < today) return res.status(400).json({ error: 'Cannot book in the past' })
+
+    // Reject past times for today
+    if (booking_date === today) {
+      const now = new Date()
+      const [h, m] = start_time.split(':').map(Number)
+      const slotMin = h * 60 + m
+      const nowMin = now.getHours() * 60 + now.getMinutes()
+      if (slotMin < nowMin) return res.status(400).json({ error: 'Selected time has already passed' })
+    }
 
     const [salons] = await db.query('SELECT * FROM salons WHERE id = $1 AND is_active = TRUE', [salon_id])
     if (salons.length === 0) return res.status(404).json({ error: 'Salon not found' })
@@ -129,6 +143,21 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
       )
 
       await client.query('COMMIT')
+
+      // Push real-time notification via WebSocket
+      notifySalon(salon_id, 'new_booking', {
+        title: `New Booking from ${customer_name}`,
+        message: `${serviceNames} on ${booking_date} at ${timeFormatted} • ₹${totalPrice}`,
+        booking_code: bookingCode,
+        customer_name,
+        customer_phone,
+        booking_date,
+        start_time,
+        services: serviceNames,
+        total_price: totalPrice,
+        auto_confirmed: autoConfirm,
+        booking_id: booking.id,
+      })
 
       const customerMsg = `Hi! I've booked at ${salon.name}.\nCode: ${bookingCode}\nDate: ${booking_date}\nTime: ${start_time}\nServices: ${serviceNames}\nTotal: Rs ${totalPrice}`
       const ownerMsg = `🔔 New booking!\nCode: ${bookingCode}\nCustomer: ${customer_name} (${customer_phone})\nDate: ${booking_date} at ${timeFormatted}\nServices: ${serviceNames}\nTotal: Rs ${totalPrice}`

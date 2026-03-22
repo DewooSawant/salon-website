@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { FiBell, FiCheck, FiX, FiClock, FiExternalLink } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
+import { io } from 'socket.io-client'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
-const POLL_INTERVAL = 15000 // 15 seconds
+const SOCKET_URL = API_URL.replace('/api', '') // e.g. http://localhost:5000
 
-// Notification sound - short pleasant chime (base64 encoded tiny audio)
+// Notification sound
 const playNotificationSound = () => {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)()
@@ -50,7 +51,6 @@ const showBrowserNotification = (title, body, onClick) => {
       onClick?.()
       notif.close()
     }
-    // Auto-close after 30s
     setTimeout(() => notif.close(), 30000)
   } catch {}
 }
@@ -69,9 +69,9 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const prevUnreadRef = useRef(0)
+  const [connected, setConnected] = useState(false)
   const dropdownRef = useRef(null)
+  const socketRef = useRef(null)
   const token = localStorage.getItem('salonOwnerToken')
 
   const api = axios.create({
@@ -79,41 +79,74 @@ export default function NotificationBell() {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   })
 
+  // Fetch existing notifications (one-time on mount)
   const fetchNotifications = useCallback(async () => {
     if (!token) return
     try {
       const res = await api.get('/salon-owner/notifications', { params: { limit: 15 } })
       setNotifications(res.data.notifications)
-      const newUnread = res.data.unread_count
-
-      // If unread count increased, we have a new booking!
-      if (newUnread > prevUnreadRef.current && prevUnreadRef.current !== 0) {
-        const latestNotif = res.data.notifications[0]
-        playNotificationSound()
-        showBrowserNotification(
-          latestNotif?.title || 'New Booking!',
-          latestNotif?.message || 'You have a new booking',
-          () => setIsOpen(true)
-        )
-        toast.success(latestNotif?.title || 'New booking received!', { duration: 5000 })
-      }
-
-      prevUnreadRef.current = newUnread
-      setUnreadCount(newUnread)
+      setUnreadCount(res.data.unread_count)
     } catch {}
   }, [token])
 
-  // Initial fetch + request browser notification permission
+  // Setup Socket.IO connection
   useEffect(() => {
+    if (!token) return
+
+    // Initial HTTP fetch for existing notifications
     fetchNotifications()
     requestBrowserNotificationPermission()
-  }, [])
 
-  // Poll every 15 seconds
-  useEffect(() => {
-    const interval = setInterval(fetchNotifications, POLL_INTERVAL)
-    return () => clearInterval(interval)
-  }, [fetchNotifications])
+    // Connect WebSocket
+    const socket = io(SOCKET_URL, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 30000,
+    })
+
+    socketRef.current = socket
+
+    socket.on('connect', () => {
+      setConnected(true)
+    })
+
+    socket.on('disconnect', () => {
+      setConnected(false)
+    })
+
+    // Listen for real-time booking notifications
+    socket.on('new_booking', (data) => {
+      // Play sound + browser notification
+      playNotificationSound()
+      showBrowserNotification(
+        data.title || 'New Booking!',
+        data.message || 'You have a new booking',
+        () => setIsOpen(true)
+      )
+      toast.success(data.title || 'New booking received!', { duration: 5000 })
+
+      // Add to notification list
+      const newNotif = {
+        id: Date.now(),
+        type: 'new_booking',
+        title: data.title,
+        message: data.message,
+        booking_id: data.booking_id,
+        is_read: false,
+        data: data,
+        created_at: new Date().toISOString(),
+      }
+      setNotifications(prev => [newNotif, ...prev].slice(0, 15))
+      setUnreadCount(prev => prev + 1)
+    })
+
+    return () => {
+      socket.disconnect()
+      socketRef.current = null
+    }
+  }, [token])
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -138,7 +171,6 @@ export default function NotificationBell() {
     try {
       await api.patch(`/salon-owner/bookings/${bookingId}/confirm`)
       toast.success('Booking confirmed!')
-      // Mark notification as read
       await api.patch('/salon-owner/notifications/read', { ids: [notifId] })
       fetchNotifications()
     } catch (err) {
@@ -171,6 +203,8 @@ export default function NotificationBell() {
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
+        {/* Connection indicator */}
+        <span className={`absolute bottom-0.5 right-0.5 w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-gray-300'}`} />
       </button>
 
       {/* Dropdown */}
@@ -178,7 +212,10 @@ export default function NotificationBell() {
         <div className="absolute right-0 top-12 w-96 max-h-[80vh] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-100">
-            <h3 className="font-bold text-gray-900">Notifications</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-gray-900">Notifications</h3>
+              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} title={connected ? 'Live' : 'Reconnecting...'} />
+            </div>
             {unreadCount > 0 && (
               <button onClick={markAllRead} className="text-xs text-brand-600 font-medium hover:text-brand-700">
                 Mark all read
@@ -192,7 +229,7 @@ export default function NotificationBell() {
               <div className="p-8 text-center">
                 <FiBell className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm text-gray-400">No notifications yet</p>
-                <p className="text-xs text-gray-400 mt-1">You'll be notified when customers book</p>
+                <p className="text-xs text-gray-400 mt-1">You'll be notified instantly when customers book</p>
               </div>
             ) : (
               notifications.map(notif => (
@@ -216,7 +253,6 @@ function NotificationItem({ notif, onConfirm, onDecline }) {
   const isNewBooking = notif.type === 'new_booking'
   const isPending = isNewBooking && !data.auto_confirmed
 
-  // Build WhatsApp link for owner to message customer
   const customerPhone = data.customer_phone?.replace(/\D/g, '')
   const whatsappLink = customerPhone
     ? `https://wa.me/91${customerPhone}?text=${encodeURIComponent(
@@ -227,7 +263,6 @@ function NotificationItem({ notif, onConfirm, onDecline }) {
   return (
     <div className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition ${!notif.is_read ? 'bg-brand-50/50' : ''}`}>
       <div className="flex items-start gap-3">
-        {/* Icon */}
         <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
           isNewBooking ? 'bg-brand-100' : 'bg-gray-100'
         }`}>
@@ -235,7 +270,6 @@ function NotificationItem({ notif, onConfirm, onDecline }) {
         </div>
 
         <div className="flex-1 min-w-0">
-          {/* Title + time */}
           <div className="flex items-start justify-between gap-2">
             <p className={`text-sm font-semibold ${!notif.is_read ? 'text-gray-900' : 'text-gray-700'}`}>
               {notif.title}
@@ -243,17 +277,14 @@ function NotificationItem({ notif, onConfirm, onDecline }) {
             <span className="text-xs text-gray-400 shrink-0">{formatTimeAgo(notif.created_at)}</span>
           </div>
 
-          {/* Message */}
           <p className="text-sm text-gray-500 mt-0.5">{notif.message}</p>
 
-          {/* Booking code badge */}
           {data.booking_code && (
             <span className="inline-block mt-1.5 px-2 py-0.5 bg-brand-100 text-brand-700 text-xs font-mono font-bold rounded">
               {data.booking_code}
             </span>
           )}
 
-          {/* Actions for pending bookings */}
           {isPending && notif.booking_id && !notif.is_read && (
             <div className="flex items-center gap-2 mt-2.5">
               <button
@@ -281,14 +312,12 @@ function NotificationItem({ notif, onConfirm, onDecline }) {
             </div>
           )}
 
-          {/* Auto-confirmed badge */}
           {data.auto_confirmed && (
             <span className="inline-flex items-center gap-1 mt-2 text-xs text-green-600 font-medium">
               <FiCheck className="w-3 h-3" /> Auto-confirmed
             </span>
           )}
 
-          {/* WhatsApp link for confirmed bookings */}
           {!isPending && whatsappLink && notif.is_read && (
             <a
               href={whatsappLink}
@@ -301,7 +330,6 @@ function NotificationItem({ notif, onConfirm, onDecline }) {
           )}
         </div>
 
-        {/* Unread dot */}
         {!notif.is_read && (
           <div className="w-2.5 h-2.5 rounded-full bg-brand-500 shrink-0 mt-1.5" />
         )}

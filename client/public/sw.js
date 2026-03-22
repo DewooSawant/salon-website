@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stylo-v1'
+const CACHE_NAME = 'stylo-v2'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -11,7 +11,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   )
-  self.skipWaiting()
+  // Don't skipWaiting automatically - wait for user to click "Update"
 })
 
 // Activate - clean old caches
@@ -22,6 +22,13 @@ self.addEventListener('activate', (event) => {
     )
   )
   self.clients.claim()
+})
+
+// Listen for skip waiting message from the page
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 // Fetch - network first, fallback to cache
