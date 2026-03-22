@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stylo - WhatsApp Message Templates</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f5f5f5; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; }
+  h1 { text-align: center; color: #7c3aed; font-size: 24px; margin-bottom: 8px; }
+  .sub { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; }
+  .msg-card {
+    background: white; border-radius: 16px; padding: 20px; margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #e5e7eb;
+  }
+  .msg-card h2 { font-size: 16px; color: #333; margin-bottom: 4px; }
+  .msg-card .label { font-size: 12px; color: #7c3aed; font-weight: 700; margin-bottom: 12px; display: inline-block; background: #f3f0ff; padding: 2px 8px; border-radius: 6px; }
+  .msg-box {
+    background: #dcf8c6; border-radius: 12px; padding: 16px; font-size: 14px;
+    line-height: 1.7; color: #111; white-space: pre-wrap; word-wrap: break-word;
+    border: 1px solid #c5e1a5; position: relative;
+  }
+  .msg-box::before {
+    content: ''; position: absolute; top: -6px; left: 12px;
+    width: 12px; height: 12px; background: #dcf8c6; transform: rotate(45deg);
+    border-left: 1px solid #c5e1a5; border-top: 1px solid #c5e1a5;
+  }
+  .copy-btn {
+    display: block; width: 100%; margin-top: 12px; padding: 10px;
+    background: #25d366; color: white; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .copy-btn:hover { background: #1da851; }
+  .tip { background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #92400e; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>WhatsApp Message Templates</h1>
+  <p class="sub">Copy and send these to salon owners. Tap the green button to copy.</p>
+
+  <div class="tip">
+    <strong>Sending Tips:</strong><br>
+    1. Send Message 1 first (introduction)<br>
+    2. Wait for reply. If interested, send Message 2 (features)<br>
+    3. If they want demo, send Message 3 (demo offer)<br>
+    4. Use Marathi messages for local salon owners
+  </div>
+
+  <!-- MSG 1: English - First Contact -->
+  <div class="msg-card">
+    <h2>Message 1: First Contact (English)</h2>
+    <div class="label">SEND FIRST</div>
+    <div class="msg-box" id="msg1">Hi! 👋
+
+I'm Dewoo from *Stylo* — a free app for salon owners.
+
+Are you still writing bills on paper? 📝
+
+Stylo helps you:
+✅ Bill walk-in customers in 3 taps
+✅ Track daily revenue automatically
+✅ See which customers haven't returned
+✅ Manage staff salary & commission
+
+It's *completely FREE* — no charges, no catch.
+
+100+ salon owners in Pune are already using it.
+
+Would you like me to show you a quick 5-minute demo? I can visit your salon or show on video call.
+
+Check it out: https://stylo.sbs/for-salon-owners
+
+📞 7249838616</div>
+    <button class="copy-btn" onclick="copyMsg('msg1')">📋 Copy Message</button>
+  </div>
+
+  <!-- MSG 1: Marathi - First Contact -->
+  <div class="msg-card">
+    <h2>Message 1: First Contact (Marathi)</h2>
+    <div class="label">SEND FIRST - MARATHI</div>
+    <div class="msg-box" id="msg1mr">नमस्कार! 👋
+
+मी देवू, *Stylo* कडून — सलून मालकांसाठी एक मोफत ॲप.
+
+तुम्ही अजूनही कागदावर बिल लिहिताय का? 📝
+
+Stylo तुम्हाला मदत करतो:
+✅ ३ टॅपमध्ये वॉक-इन बिल बनवा
+✅ रोजचा रेव्हेन्यू ऑटोमॅटिक ट्रॅक करा
+✅ कोणते कस्टमर परत आले नाहीत ते बघा
+✅ स्टाफ पगार आणि कमिशन मॅनेज करा
+
+हे *पूर्णपणे मोफत* आहे — कोणताही चार्ज नाही.
+
+पुण्यातील 100+ सलून मालक आधीच वापरत आहेत.
+
+तुम्हाला 5 मिनिटाचा क्विक डेमो दाखवू का? मी तुमच्या सलूनला येऊ शकतो किंवा व्हिडिओ कॉलवर दाखवतो.
+
+बघा: https://stylo.sbs/for-salon-owners
+
+📞 7249838616</div>
+    <button class="copy-btn" onclick="copyMsg('msg1mr')">📋 Copy Message</button>
+  </div>
+
+  <!-- MSG 2: Feature Details -->
+  <div class="msg-card">
+    <h2>Message 2: Feature Details (Send after interest)</h2>
+    <div class="label">SEND AFTER REPLY</div>
+    <div class="msg-box" id="msg2">Great! Here's what Stylo does for your salon: 💈
+
+*1. Walk-in Billing* 💰
+Customer आला → service select करा → name टाका → Bill! 5 seconds मध्ये.
+Cash, UPI, Card — सगळं automatic track होतं.
+
+*2. Customer History* 👥
+प्रत्येक customer ची full history — किती visits, किती spend, कोणती service आवडते.
+30 दिवस न आलेले customers दिसतात.
+
+*3. Daily Report* 📊
+दररोज किती कमाई झाली, कोणत्या service ने सगळ्यात जास्त revenue दिला, कोणत्या stylist ने किती काम केलं — सगळं एका click मध्ये.
+
+*4. Staff Management* 💪
+प्रत्येक stylist चा पगार, commission, salary slip — automatic.
+
+*5. Online Booking* 📅
+तुमचं स्वतःचं salon page — customers 24/7 book करू शकतात.
+
+हे सगळं *FREE* आहे! 🎉
+
+Register करा: https://stylo.sbs/salon-owner/register
+
+📞 7249838616 — कोणताही प्रश्न असेल तर call करा!</div>
+    <button class="copy-btn" onclick="copyMsg('msg2')">📋 Copy Message</button>
+  </div>
+
+  <!-- MSG 3: Demo Offer -->
+  <div class="msg-card">
+    <h2>Message 3: Demo Offer</h2>
+    <div class="label">CLOSE THE DEAL</div>
+    <div class="msg-box" id="msg3">Perfect! 🎉
+
+मी तुमच्या salon ला येतो आणि 5 minutes मध्ये setup करतो:
+
+1️⃣ तुमच्या सगळ्या services add करतो
+2️⃣ Staff members add करतो
+3️⃣ पहिलं walk-in bill बनवून दाखवतो
+4️⃣ सगळं कसं वापरायचं ते शिकवतो
+
+*मोफत setup — कोणताही charge नाही.*
+
+तुम्हाला कधी convenient आहे?
+☀️ सकाळी (10-12)
+🌤️ दुपारी (2-4)
+🌙 संध्याकाळी (5-7)
+
+वेळ सांगा, मी येतो! 😊
+
+📞 7249838616</div>
+    <button class="copy-btn" onclick="copyMsg('msg3')">📋 Copy Message</button>
+  </div>
+
+  <!-- MSG 4: Follow-up -->
+  <div class="msg-card">
+    <h2>Message 4: Follow-up (If no reply in 2 days)</h2>
+    <div class="label">FOLLOW UP</div>
+    <div class="msg-box" id="msg4">Hi! 👋
+
+मी 2 दिवसांपूर्वी Stylo बद्दल message केला होता — तुमच्या salon साठी free billing & management app.
+
+बरेच salon owners ना सुरुवातीला वाटतं "मला हे नको" — पण एकदा वापरल्यावर सगळे म्हणतात "हे आधी का नव्हतं?" 😄
+
+फक्त 2 मिनिटात register करा आणि बघा:
+👉 https://stylo.sbs/for-salon-owners
+
+काही प्रश्न असतील तर मला call करा: 📞 7249838616
+
+धन्यवाद! 🙏</div>
+    <button class="copy-btn" onclick="copyMsg('msg4')">📋 Copy Message</button>
+  </div>
+
+</div>
+
+<script>
+function copyMsg(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector(`#${id}`).nextElementSibling;
+    btn.textContent = '✅ Copied!';
+    btn.style.background = '#16a34a';
+    setTimeout(() => { btn.textContent = '📋 Copy Message'; btn.style.background = '#25d366'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

@@ -24,6 +24,7 @@ import SalonOwnerDailyReport from './pages/marketplace/SalonOwnerDailyReport'
 import SalonOwnerCustomers from './pages/marketplace/SalonOwnerCustomers'
 import SalonOwnerStaffPay from './pages/marketplace/SalonOwnerStaffPay'
 import SalonOwnerAnalytics from './pages/marketplace/SalonOwnerAnalytics'
+import ForSalonOwners from './pages/marketplace/ForSalonOwners'
 
 // Admin Pages (salon owner dashboard - reuse existing)
 import Login from './pages/admin/Login'
@@ -102,6 +103,7 @@ function AppRoutes() {
       <Route path="/my-bookings" element={<MyBookings />} />
 
       {/* ========== SALON OWNER ========== */}
+      <Route path="/for-salon-owners" element={<ForSalonOwners />} />
       <Route path="/salon-owner/register" element={<SalonOwnerRegister />} />
       <Route path="/salon-owner/login" element={<SalonOwnerLogin />} />
       <Route path="/salon-owner/dashboard" element={<SalonOwnerDashboard />} />

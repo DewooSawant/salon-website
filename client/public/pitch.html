@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stylo - Salon Marketing Kit</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', 'Noto Sans Devanagari', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; background: #e5e5e5; color: #1a1a1a; }
+
+  .page { width: 210mm; max-width: 100vw; margin: 20px auto; background: white; box-shadow: 0 4px 30px rgba(0,0,0,0.12); overflow: hidden; border-radius: 4px; }
+
+  .no-print { text-align: center; padding: 30px 20px; background: linear-gradient(135deg, #7c3aed, #ec4899); max-width: 210mm; margin: 0 auto 0; border-radius: 4px 4px 0 0; }
+  .no-print h1 { font-size: 32px; color: white; margin-bottom: 6px; }
+  .no-print p { color: rgba(255,255,255,0.8); margin-bottom: 20px; font-size: 14px; }
+  .no-print .btns { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+  .no-print button {
+    padding: 12px 28px; background: white; color: #7c3aed; border: none;
+    border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: 'Inter', sans-serif; transition: transform 0.2s;
+  }
+  .no-print button:hover { transform: scale(1.05); }
+
+  @media screen and (max-width: 220mm) {
+    .page { width: 100vw; border-radius: 0; margin: 10px 0; transform-origin: top left; }
+    .no-print { max-width: 100vw; border-radius: 0; }
+  }
+
+  @media print {
+    .no-print { display: none; }
+    .page { box-shadow: none; margin: 0; border-radius: 0; }
+    .page-break { page-break-before: always; }
+  }
+
+  /* ==================== BUSINESS CARD ==================== */
+  .card-container { padding: 25mm; display: flex; flex-wrap: wrap; gap: 8mm; justify-content: center; }
+
+  .biz-card { width: 85mm; height: 55mm; border: 1px dashed #ccc; border-radius: 3mm; overflow: hidden; }
+
+  .biz-card-front {
+    background: linear-gradient(135deg, #7c3aed 0%, #9333ea 30%, #ec4899 100%);
+    color: white; padding: 5mm; height: 100%;
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .biz-card-front::before {
+    content: ''; position: absolute; top: -15mm; right: -15mm;
+    width: 40mm; height: 40mm; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .biz-card-front::after {
+    content: ''; position: absolute; bottom: -10mm; left: -10mm;
+    width: 30mm; height: 30mm; border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .biz-card-front .top { position: relative; z-index: 1; }
+  .biz-card-front .logo-row { display: flex; align-items: center; gap: 2.5mm; }
+  .biz-card-front .logo-icon {
+    width: 9mm; height: 9mm; background: rgba(255,255,255,0.2);
+    border-radius: 2.5mm; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; backdrop-filter: blur(4px);
+  }
+  .biz-card-front .logo-text { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .biz-card-front .tagline { font-size: 7.5px; opacity: 0.85; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1.5mm; }
+
+  .biz-card-front .mid { position: relative; z-index: 1; }
+  .biz-card-front .contact-line { font-size: 10px; font-weight: 600; display: flex; align-items: center; gap: 1.5mm; }
+  .biz-card-front .contact-line + .contact-line { margin-top: 1mm; }
+
+  .biz-card-front .bottom { position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: flex-end; }
+  .biz-card-front .url { font-size: 12px; font-weight: 800; background: rgba(255,255,255,0.2); padding: 1.5mm 3mm; border-radius: 2mm; backdrop-filter: blur(4px); }
+  .biz-card-front .features { font-size: 6.5px; opacity: 0.85; text-align: right; line-height: 1.7; }
+
+  .biz-card-back {
+    background: white; padding: 4mm 5mm; height: 100%;
+    display: flex; flex-direction: column; justify-content: center;
+    position: relative;
+  }
+  .biz-card-back::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1.5mm;
+    background: linear-gradient(90deg, #7c3aed, #ec4899);
+  }
+  .biz-card-back h3 { font-size: 11px; font-weight: 800; color: #7c3aed; margin-bottom: 2.5mm; text-align: center; }
+  .biz-card-back .benefits { font-size: 7.5px; color: #444; line-height: 1.9; padding: 0 3mm; }
+  .biz-card-back .benefits .chk { color: #22c55e; font-weight: 700; margin-right: 1mm; }
+  .biz-card-back .cta-row { display: flex; justify-content: center; gap: 3mm; margin-top: 2.5mm; }
+  .biz-card-back .cta {
+    font-size: 8px; font-weight: 700; color: white; background: #7c3aed;
+    padding: 1.5mm 4mm; border-radius: 2mm; text-align: center;
+  }
+  .biz-card-back .cta-phone {
+    font-size: 8px; font-weight: 700; color: #7c3aed; border: 0.5mm solid #7c3aed;
+    padding: 1.5mm 4mm; border-radius: 2mm; text-align: center;
+  }
+
+  /* ==================== ENGLISH FLYER ==================== */
+  .flyer { width: 210mm; min-height: 297mm; position: relative; overflow: hidden; }
+
+  .flyer-hero {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 35%, #ec4899 100%);
+    color: white; padding: 14mm 14mm 22mm; text-align: center; position: relative;
+  }
+  .flyer-hero::before {
+    content: ''; position: absolute; top: -30mm; right: -30mm;
+    width: 80mm; height: 80mm; border-radius: 50%; background: rgba(255,255,255,0.05);
+  }
+  .flyer-hero::after {
+    content: ''; position: absolute; bottom: -8mm; left: 0; right: 0;
+    height: 16mm; background: white; border-radius: 50% 50% 0 0;
+  }
+  .flyer-hero .badge {
+    display: inline-block; background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3); padding: 2mm 5mm;
+    border-radius: 5mm; font-size: 9px; font-weight: 700;
+    margin-bottom: 4mm; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .flyer-hero h1 { font-size: 38px; font-weight: 900; line-height: 1.15; margin-bottom: 4mm; }
+  .flyer-hero h1 .highlight {
+    background: rgba(255,255,255,0.2); padding: 1mm 4mm; border-radius: 3mm;
+    display: inline-block;
+  }
+  .flyer-hero p { font-size: 13px; opacity: 0.9; max-width: 380px; margin: 0 auto; line-height: 1.5; }
+
+  .flyer-body { padding: 10mm 14mm 8mm; }
+  .section { margin-bottom: 7mm; }
+  .section h2 { font-size: 16px; font-weight: 800; color: #7c3aed; margin-bottom: 3mm; padding-top: 2mm; line-height: 1.4; }
+
+  .problem-row { display: flex; gap: 3mm; margin-bottom: 2mm; }
+  .problem-card {
+    flex: 1; background: #fef2f2; border: 1px solid #fecaca; border-radius: 3mm;
+    padding: 3.5mm; text-align: center;
+  }
+  .problem-card .emoji { font-size: 22px; margin-bottom: 1mm; }
+  .problem-card h4 { font-size: 9px; font-weight: 700; color: #dc2626; }
+  .problem-card p { font-size: 7.5px; color: #991b1b; margin-top: 0.5mm; }
+
+  .feat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; }
+  .feat-card {
+    background: linear-gradient(135deg, #f5f3ff, #fdf4ff); border: 1px solid #ede9fe;
+    border-radius: 3.5mm; padding: 3.5mm 4mm; position: relative; overflow: hidden;
+  }
+  .feat-card::after {
+    content: ''; position: absolute; top: -5mm; right: -5mm;
+    width: 12mm; height: 12mm; border-radius: 50%;
+    background: rgba(124,58,237,0.06);
+  }
+  .feat-card .emoji { font-size: 20px; margin-bottom: 1.5mm; }
+  .feat-card h4 { font-size: 9.5px; font-weight: 700; color: #1a1a1a; margin-bottom: 0.5mm; }
+  .feat-card p { font-size: 7.5px; color: #555; line-height: 1.35; }
+
+  .price-banner {
+    background: linear-gradient(135deg, #7c3aed, #9333ea, #ec4899);
+    color: white; border-radius: 4mm; padding: 5mm;
+    display: flex; align-items: center; justify-content: center; gap: 6mm;
+    margin: 5mm 0;
+  }
+  .price-banner .left { text-align: center; }
+  .price-banner .price { font-size: 42px; font-weight: 900; line-height: 1; }
+  .price-banner .price-sub { font-size: 11px; opacity: 0.9; }
+  .price-banner .divider { width: 0.5mm; height: 15mm; background: rgba(255,255,255,0.3); }
+  .price-banner .right { font-size: 9px; opacity: 0.9; line-height: 1.7; }
+
+  .steps-row { display: flex; gap: 3mm; }
+  .step-card { flex: 1; text-align: center; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 3mm; padding: 3.5mm; }
+  .step-card .num {
+    width: 7mm; height: 7mm; background: #7c3aed; color: white;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800; margin: 0 auto 1.5mm;
+  }
+  .step-card h4 { font-size: 9.5px; font-weight: 700; }
+  .step-card p { font-size: 7.5px; color: #666; margin-top: 0.5mm; }
+
+  .testi {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7); border: 1px solid #fde68a;
+    border-radius: 4mm; padding: 4mm 5mm; margin: 4mm 0;
+    display: flex; align-items: center; gap: 4mm;
+  }
+  .testi .avatar {
+    width: 12mm; height: 12mm; background: #f59e0b; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: white; shrink: 0;
+  }
+  .testi .quote { font-size: 9px; color: #92400e; line-height: 1.5; font-style: italic; flex: 1; }
+  .testi .author { font-size: 8px; color: #b45309; font-weight: 700; margin-top: 1mm; font-style: normal; }
+
+  .trust-strip {
+    display: flex; justify-content: center; gap: 6mm; margin: 3mm 0;
+  }
+  .trust-item { font-size: 8px; color: #666; font-weight: 600; display: flex; align-items: center; gap: 1mm; }
+
+  .flyer-footer {
+    background: #111; color: white; padding: 7mm 14mm; text-align: center;
+    position: relative;
+  }
+  .flyer-footer::before {
+    content: ''; position: absolute; top: -4mm; left: 0; right: 0;
+    height: 8mm; background: #111; border-radius: 50% 50% 0 0;
+  }
+  .flyer-footer .url { font-size: 24px; font-weight: 900; color: #a78bfa; }
+  .flyer-footer .phone { font-size: 16px; font-weight: 700; color: #f9fafb; margin: 2mm 0; }
+  .flyer-footer .sub { font-size: 10px; color: #9ca3af; }
+  .flyer-footer .cta-btn {
+    display: inline-block; margin-top: 3mm;
+    background: linear-gradient(135deg, #7c3aed, #ec4899);
+    padding: 3mm 10mm; border-radius: 3mm;
+    font-size: 12px; font-weight: 800; color: white;
+  }
+
+  /* ==================== MARATHI FLYER ==================== */
+  .mr { font-family: 'Noto Sans Devanagari', 'Inter', sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="no-print">
+  <h1>Stylo Marketing Kit</h1>
+  <p>Business cards + English flyer + Marathi flyer</p>
+  <div class="btns">
+    <button onclick="window.print()">Print All</button>
+    <button onclick="hideAll(); document.getElementById('cards').style.display=''; window.print(); showAll();">Cards Only</button>
+    <button onclick="hideAll(); document.getElementById('flyer-en').style.display=''; window.print(); showAll();">English Flyer</button>
+    <button onclick="hideAll(); document.getElementById('flyer-mr').style.display=''; window.print(); showAll();">Marathi Flyer</button>
+  </div>
+</div>
+<script>
+function hideAll(){document.querySelectorAll('.page').forEach(p=>p.style.display='none')}
+function showAll(){document.querySelectorAll('.page').forEach(p=>p.style.display='')}
+</script>
+
+<!-- ==================== BUSINESS CARDS ==================== -->
+<div class="page" id="cards">
+  <div class="card-container">
+    <!-- 4 sets of front + back -->
+    <div class="biz-card"><div class="biz-card-front"><div class="top"><div class="logo-row"><div class="logo-icon">✂️</div><div class="logo-text">Stylo</div></div><div class="tagline">Salon Booking & Management Platform</div></div><div class="mid"><div class="contact-line">📞 7249838616</div><div class="contact-line">🌐 stylo.sbs</div></div><div class="bottom"><div class="url">stylo.sbs</div><div class="features">Online Booking<br>Walk-in Billing<br>Customer CRM<br>Staff Management</div></div></div></div>
+    <div class="biz-card"><div class="biz-card-back"><h3>Grow Your Salon Business</h3><div class="benefits"><span class="chk">✓</span> Get discovered by 1000s of customers<br><span class="chk">✓</span> Accept bookings 24/7 automatically<br><span class="chk">✓</span> Walk-in billing in 3 taps<br><span class="chk">✓</span> Track revenue, customers & staff<br><span class="chk">✓</span> WhatsApp receipts & reminders<br><span class="chk">✓</span> Analytics & daily reports</div><div class="cta-row"><div class="cta">stylo.sbs</div><div class="cta-phone">📞 7249838616</div></div></div></div>
+
+    <div class="biz-card"><div class="biz-card-front"><div class="top"><div class="logo-row"><div class="logo-icon">✂️</div><div class="logo-text">Stylo</div></div><div class="tagline">Salon Booking & Management Platform</div></div><div class="mid"><div class="contact-line">📞 7249838616</div><div class="contact-line">🌐 stylo.sbs</div></div><div class="bottom"><div class="url">stylo.sbs</div><div class="features">Online Booking<br>Walk-in Billing<br>Customer CRM<br>Staff Management</div></div></div></div>
+    <div class="biz-card"><div class="biz-card-back"><h3>Grow Your Salon Business</h3><div class="benefits"><span class="chk">✓</span> Get discovered by 1000s of customers<br><span class="chk">✓</span> Accept bookings 24/7 automatically<br><span class="chk">✓</span> Walk-in billing in 3 taps<br><span class="chk">✓</span> Track revenue, customers & staff<br><span class="chk">✓</span> WhatsApp receipts & reminders<br><span class="chk">✓</span> Analytics & daily reports</div><div class="cta-row"><div class="cta">stylo.sbs</div><div class="cta-phone">📞 7249838616</div></div></div></div>
+
+    <div class="biz-card"><div class="biz-card-front"><div class="top"><div class="logo-row"><div class="logo-icon">✂️</div><div class="logo-text">Stylo</div></div><div class="tagline">Salon Booking & Management Platform</div></div><div class="mid"><div class="contact-line">📞 7249838616</div><div class="contact-line">🌐 stylo.sbs</div></div><div class="bottom"><div class="url">stylo.sbs</div><div class="features">Online Booking<br>Walk-in Billing<br>Customer CRM<br>Staff Management</div></div></div></div>
+    <div class="biz-card"><div class="biz-card-back"><h3>Grow Your Salon Business</h3><div class="benefits"><span class="chk">✓</span> Get discovered by 1000s of customers<br><span class="chk">✓</span> Accept bookings 24/7 automatically<br><span class="chk">✓</span> Walk-in billing in 3 taps<br><span class="chk">✓</span> Track revenue, customers & staff<br><span class="chk">✓</span> WhatsApp receipts & reminders<br><span class="chk">✓</span> Analytics & daily reports</div><div class="cta-row"><div class="cta">stylo.sbs</div><div class="cta-phone">📞 7249838616</div></div></div></div>
+
+    <div class="biz-card"><div class="biz-card-front"><div class="top"><div class="logo-row"><div class="logo-icon">✂️</div><div class="logo-text">Stylo</div></div><div class="tagline">Salon Booking & Management Platform</div></div><div class="mid"><div class="contact-line">📞 7249838616</div><div class="contact-line">🌐 stylo.sbs</div></div><div class="bottom"><div class="url">stylo.sbs</div><div class="features">Online Booking<br>Walk-in Billing<br>Customer CRM<br>Staff Management</div></div></div></div>
+    <div class="biz-card"><div class="biz-card-back"><h3>Grow Your Salon Business</h3><div class="benefits"><span class="chk">✓</span> Get discovered by 1000s of customers<br><span class="chk">✓</span> Accept bookings 24/7 automatically<br><span class="chk">✓</span> Walk-in billing in 3 taps<br><span class="chk">✓</span> Track revenue, customers & staff<br><span class="chk">✓</span> WhatsApp receipts & reminders<br><span class="chk">✓</span> Analytics & daily reports</div><div class="cta-row"><div class="cta">stylo.sbs</div><div class="cta-phone">📞 7249838616</div></div></div></div>
+  </div>
+</div>
+
+<!-- ==================== ENGLISH FLYER ==================== -->
+<div class="page flyer page-break" id="flyer-en">
+  <div class="flyer-hero">
+    <div class="badge">FOR SALON OWNERS IN PUNE</div>
+    <h1>Grow Your Salon<br>With <span class="highlight">Stylo</span></h1>
+    <p>Free booking system, walk-in billing, customer management & analytics - all in one app</p>
+  </div>
+
+  <div class="flyer-body">
+    <div class="section">
+      <h2>😰 Still Managing Like This?</h2>
+      <div class="problem-row">
+        <div class="problem-card"><div class="emoji">📝</div><h4>Paper Bills</h4><p>No records, no history</p></div>
+        <div class="problem-card"><div class="emoji">😭</div><h4>Missed Bookings</h4><p>Customers can't book online</p></div>
+        <div class="problem-card"><div class="emoji">💰</div><h4>No Tracking</h4><p>Revenue? Staff? No clue</p></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>✨ What Stylo Gives You</h2>
+      <div class="feat-grid">
+        <div class="feat-card"><div class="emoji">📅</div><h4>Online Booking</h4><p>Customers book from your page. Instant notification.</p></div>
+        <div class="feat-card"><div class="emoji">💰</div><h4>Walk-in Billing</h4><p>Bill in 3 taps. Cash, UPI, Card tracked.</p></div>
+        <div class="feat-card"><div class="emoji">👥</div><h4>Customer CRM</h4><p>Track visits, spend, favorites. Auto-suggest regulars.</p></div>
+        <div class="feat-card"><div class="emoji">📈</div><h4>Analytics</h4><p>Revenue graphs, peak hours, top services.</p></div>
+        <div class="feat-card"><div class="emoji">💪</div><h4>Staff Pay</h4><p>Salary, commission, slips. Per stylist tracking.</p></div>
+        <div class="feat-card"><div class="emoji">💬</div><h4>WhatsApp</h4><p>Send receipts & reminders. One tap.</p></div>
+      </div>
+    </div>
+
+    <div class="price-banner">
+      <div class="left">
+        <div class="price-sub">Get Started</div>
+        <div class="price">FREE</div>
+        <div class="price-sub">No hidden charges</div>
+      </div>
+      <div class="divider"></div>
+      <div class="right">
+        ✓ Unlimited bookings<br>
+        ✓ Unlimited walk-in bills<br>
+        ✓ Full analytics<br>
+        ✓ WhatsApp receipts<br>
+        ✓ Staff management
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🚀 Start in 3 Steps</h2>
+      <div class="steps-row">
+        <div class="step-card"><div class="num">1</div><h4>Register</h4><p>Visit stylo.sbs<br>2 minutes setup</p></div>
+        <div class="step-card"><div class="num">2</div><h4>Add Services</h4><p>Add your services,<br>prices & staff</p></div>
+        <div class="step-card"><div class="num">3</div><h4>Start Billing</h4><p>Use walk-in billing today.<br>Share your page!</p></div>
+      </div>
+    </div>
+
+    <div class="testi">
+      <div class="avatar">B</div>
+      <div>
+        <div class="quote">"I was writing bills on paper. Now I track everything on Stylo - revenue, customers, staff. My repeat customers increased because I send them WhatsApp reminders."</div>
+        <div class="author">- Bhakti Sawant, Bhakti Salon, Pune</div>
+      </div>
+    </div>
+
+    <div class="trust-strip">
+      <div class="trust-item">🔒 Secure</div>
+      <div class="trust-item">📱 Works on Mobile</div>
+      <div class="trust-item">⚡ Instant Setup</div>
+      <div class="trust-item">🇮🇳 Made in Pune</div>
+    </div>
+  </div>
+
+  <div class="flyer-footer">
+    <div class="url">stylo.sbs</div>
+    <div class="phone">📞 7249838616</div>
+    <div class="sub">Book. Style. Shine.</div>
+    <div class="cta-btn">Register Your Salon FREE →</div>
+  </div>
+</div>
+
+<!-- ==================== MARATHI FLYER ==================== -->
+<div class="page flyer page-break mr" id="flyer-mr">
+  <div class="flyer-hero">
+    <div class="badge">पुण्यातील सलून मालकांसाठी</div>
+    <h1>तुमचा सलून वाढवा<br><span class="highlight">Stylo</span> सोबत</h1>
+    <p>मोफत बुकिंग सिस्टम, वॉक-इन बिलिंग, कस्टमर मॅनेजमेंट आणि अॅनालिटिक्स - सगळं एकाच ॲपमध्ये</p>
+  </div>
+
+  <div class="flyer-body">
+    <div class="section">
+      <h2>😰 अजूनही असं मॅनेज करताय?</h2>
+      <div class="problem-row">
+        <div class="problem-card"><div class="emoji">📝</div><h4>कागदावर बिल</h4><p>रेकॉर्ड नाही, हिस्ट्री नाही</p></div>
+        <div class="problem-card"><div class="emoji">😭</div><h4>बुकिंग मिस</h4><p>कस्टमर ऑनलाइन बुक करू शकत नाहीत</p></div>
+        <div class="problem-card"><div class="emoji">💰</div><h4>ट्रॅकिंग नाही</h4><p>रेव्हेन्यू? स्टाफ? माहीत नाही</p></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>✨ Stylo तुम्हाला काय देतो</h2>
+      <div class="feat-grid">
+        <div class="feat-card"><div class="emoji">📅</div><h4>ऑनलाइन बुकिंग</h4><p>कस्टमर तुमच्या पेजवरून बुक करतात. तुम्हाला लगेच नोटिफिकेशन.</p></div>
+        <div class="feat-card"><div class="emoji">💰</div><h4>वॉक-इन बिलिंग</h4><p>३ टॅपमध्ये बिल बनवा. कॅश, UPI, कार्ड - सगळं ट्रॅक.</p></div>
+        <div class="feat-card"><div class="emoji">👥</div><h4>कस्टमर CRM</h4><p>कोण आला, किती खर्च केला, आवडती सर्व्हिस - सगळं बघा.</p></div>
+        <div class="feat-card"><div class="emoji">📈</div><h4>अॅनालिटिक्स</h4><p>रेव्हेन्यू ग्राफ, पीक अवर्स, टॉप सर्व्हिसेस.</p></div>
+        <div class="feat-card"><div class="emoji">💪</div><h4>स्टाफ पे</h4><p>पगार, कमिशन, स्लिप. प्रत्येक स्टायलिस्टचा ट्रॅक.</p></div>
+        <div class="feat-card"><div class="emoji">💬</div><h4>WhatsApp</h4><p>बिल रिसीट आणि रिमाइंडर एका टॅपमध्ये पाठवा.</p></div>
+      </div>
+    </div>
+
+    <div class="price-banner">
+      <div class="left">
+        <div class="price-sub">सुरुवात करा</div>
+        <div class="price">मोफत</div>
+        <div class="price-sub">कोणताही हिडन चार्ज नाही</div>
+      </div>
+      <div class="divider"></div>
+      <div class="right">
+        ✓ अनलिमिटेड बुकिंग<br>
+        ✓ अनलिमिटेड वॉक-इन बिल<br>
+        ✓ पूर्ण अॅनालिटिक्स<br>
+        ✓ WhatsApp रिसीट<br>
+        ✓ स्टाफ मॅनेजमेंट
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🚀 फक्त ३ स्टेप्समध्ये सुरू करा</h2>
+      <div class="steps-row">
+        <div class="step-card"><div class="num">1</div><h4>रजिस्टर करा</h4><p>stylo.sbs वर जा<br>फक्त २ मिनिटं</p></div>
+        <div class="step-card"><div class="num">2</div><h4>सर्व्हिसेस ॲड करा</h4><p>तुमच्या सर्व्हिसेस,<br>किमती आणि स्टाफ ॲड करा</p></div>
+        <div class="step-card"><div class="num">3</div><h4>बिलिंग सुरू करा</h4><p>आजच वॉक-इन बिलिंग वापरा.<br>तुमचं पेज शेअर करा!</p></div>
+      </div>
+    </div>
+
+    <div class="testi">
+      <div class="avatar">भ</div>
+      <div>
+        <div class="quote">"मी पेपरवर बिल लिहायचो. आता Stylo वर सगळं ट्रॅक करतो - रेव्हेन्यू, कस्टमर, स्टाफ. WhatsApp रिमाइंडर पाठवल्यामुळे माझे रिपीट कस्टमर वाढले."</div>
+        <div class="author">- भक्ती सावंत, भक्ती सलून, पुणे</div>
+      </div>
+    </div>
+
+    <div class="trust-strip">
+      <div class="trust-item">🔒 सुरक्षित</div>
+      <div class="trust-item">📱 मोबाइलवर चालतो</div>
+      <div class="trust-item">⚡ लगेच सुरू करा</div>
+      <div class="trust-item">🇮🇳 पुण्यात बनवलेला</div>
+    </div>
+  </div>
+
+  <div class="flyer-footer">
+    <div class="url">stylo.sbs</div>
+    <div class="phone">📞 7249838616</div>
+    <div class="sub">Book. Style. Shine.</div>
+    <div class="cta-btn">तुमचा सलून मोफत रजिस्टर करा →</div>
+  </div>
+</div>
+
+</body>
+</html>
