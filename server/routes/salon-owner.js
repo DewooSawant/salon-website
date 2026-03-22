@@ -5,6 +5,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 import db, { pool } from '../db/config_pg.js'
+import { cached, invalidate } from '../db/redis.js'
 import { generateToken, authenticateSalonOwner } from '../middleware/auth_v2.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -120,13 +121,16 @@ router.post('/login', async (req, res) => {
 router.get('/dashboard', authenticateSalonOwner, async (req, res) => {
   try {
     const sid = req.user.salon_id
-    const [[today]] = await db.query(`SELECT COUNT(*) as count FROM bookings WHERE salon_id=$1 AND booking_date=CURRENT_DATE AND status!='cancelled'`, [sid])
-    const [[pending]] = await db.query(`SELECT COUNT(*) as count FROM bookings WHERE salon_id=$1 AND status='pending'`, [sid])
-    const [[todayRev]] = await db.query(`SELECT COALESCE(SUM(final_price),0) as total FROM bookings WHERE salon_id=$1 AND booking_date=CURRENT_DATE AND status='completed'`, [sid])
-    const [[monthRev]] = await db.query(`SELECT COALESCE(SUM(final_price),0) as total FROM bookings WHERE salon_id=$1 AND EXTRACT(MONTH FROM booking_date)=EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM booking_date)=EXTRACT(YEAR FROM CURRENT_DATE) AND status='completed'`, [sid])
-    const [[msgs]] = await db.query(`SELECT COUNT(*) as count FROM contact_messages WHERE salon_id=$1 AND is_read=FALSE`, [sid])
-    const [recent] = await db.query(`SELECT b.*,st.name as stylist_name FROM bookings b LEFT JOIN stylists st ON st.id=b.stylist_id WHERE b.salon_id=$1 ORDER BY b.created_at DESC LIMIT 10`, [sid])
-    const [[salon]] = await db.query('SELECT avg_rating,total_ratings,total_bookings FROM salons WHERE id=$1', [sid])
+
+    const [[[today]], [[pending]], [[todayRev]], [[monthRev]], [[msgs]], [recent], [[salon]]] = await Promise.all([
+      db.query(`SELECT COUNT(*) as count FROM bookings WHERE salon_id=$1 AND booking_date=CURRENT_DATE AND status!='cancelled'`, [sid]),
+      db.query(`SELECT COUNT(*) as count FROM bookings WHERE salon_id=$1 AND status='pending'`, [sid]),
+      db.query(`SELECT COALESCE(SUM(final_price),0) as total FROM bookings WHERE salon_id=$1 AND booking_date=CURRENT_DATE AND status='completed'`, [sid]),
+      db.query(`SELECT COALESCE(SUM(final_price),0) as total FROM bookings WHERE salon_id=$1 AND EXTRACT(MONTH FROM booking_date)=EXTRACT(MONTH FROM CURRENT_DATE) AND EXTRACT(YEAR FROM booking_date)=EXTRACT(YEAR FROM CURRENT_DATE) AND status='completed'`, [sid]),
+      db.query(`SELECT COUNT(*) as count FROM contact_messages WHERE salon_id=$1 AND is_read=FALSE`, [sid]),
+      db.query(`SELECT b.*,st.name as stylist_name FROM bookings b LEFT JOIN stylists st ON st.id=b.stylist_id WHERE b.salon_id=$1 ORDER BY b.created_at DESC LIMIT 10`, [sid]),
+      db.query('SELECT avg_rating,total_ratings,total_bookings FROM salons WHERE id=$1', [sid]),
+    ])
 
     res.json({
       stats: { today_bookings: parseInt(today.count), pending_bookings: parseInt(pending.count), today_revenue: parseFloat(todayRev.total), month_revenue: parseFloat(monthRev.total), unread_messages: parseInt(msgs.count), avg_rating: salon?.avg_rating || 0, total_ratings: salon?.total_ratings || 0 },
@@ -142,101 +146,49 @@ router.get('/dashboard', authenticateSalonOwner, async (req, res) => {
 router.get('/analytics', authenticateSalonOwner, async (req, res) => {
   try {
     const sid = req.user.salon_id
-    const { period } = req.query // '7d', '30d', 'month'
-    const days = period === '30d' ? 30 : period === 'month' ? 30 : 7
+    const { period } = req.query
+    const days = period === '30d' ? 30 : 7
 
-    // 1. Daily revenue for chart (last N days)
-    const [dailyRevenue] = await db.query(`
-      SELECT d::date AS date,
-             COALESCE(SUM(b.final_price), 0) AS revenue,
-             COUNT(b.id) AS bookings
-      FROM generate_series(CURRENT_DATE - $2::int + 1, CURRENT_DATE, '1 day') d
-      LEFT JOIN bookings b ON b.booking_date = d::date AND b.salon_id = $1
-        AND b.status IN ('completed', 'confirmed')
-      GROUP BY d::date ORDER BY d::date
-    `, [sid, days])
-
-    // 2. Top services by revenue
-    const [topServices] = await db.query(`
-      SELECT bs.service_name AS name, COUNT(*) AS bookings,
-             SUM(bs.service_price) AS revenue
-      FROM booking_services bs
-      JOIN bookings b ON b.id = bs.booking_id
-      WHERE b.salon_id = $1 AND b.status IN ('completed', 'confirmed')
-        AND b.booking_date >= CURRENT_DATE - $2::int
-      GROUP BY bs.service_name
-      ORDER BY revenue DESC LIMIT 8
-    `, [sid, days])
-
-    // 3. Top customers by spend
-    const [topCustomers] = await db.query(`
-      SELECT customer_name AS name, customer_phone AS phone,
-             COUNT(*) AS visits, SUM(final_price) AS total_spent
-      FROM bookings
-      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
-        AND booking_date >= CURRENT_DATE - $2::int
-        AND customer_phone != 'walk-in'
-      GROUP BY customer_name, customer_phone
-      ORDER BY total_spent DESC LIMIT 5
-    `, [sid, days])
-
-    // 4. Walk-in vs Online split
-    const [channelSplit] = await db.query(`
-      SELECT
-        SUM(CASE WHEN booking_code LIKE 'WI%' THEN 1 ELSE 0 END) AS walkin,
-        SUM(CASE WHEN booking_code NOT LIKE 'WI%' THEN 1 ELSE 0 END) AS online,
-        COUNT(*) AS total
-      FROM bookings
-      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
-        AND booking_date >= CURRENT_DATE - $2::int
-    `, [sid, days])
-
-    // 5. Payment method breakdown
-    const [paymentSplit] = await db.query(`
-      SELECT payment_method, COUNT(*) AS count, SUM(final_price) AS amount
-      FROM bookings
-      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
-        AND booking_date >= CURRENT_DATE - $2::int
-      GROUP BY payment_method ORDER BY amount DESC
-    `, [sid, days])
-
-    // 6. Peak hours (hour of day distribution)
-    const [peakHours] = await db.query(`
-      SELECT EXTRACT(HOUR FROM start_time)::int AS hour, COUNT(*) AS count
-      FROM bookings
-      WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
-        AND booking_date >= CURRENT_DATE - $2::int
-      GROUP BY hour ORDER BY hour
-    `, [sid, days])
-
-    // 7. Stylist performance
-    const [stylistPerf] = await db.query(`
-      SELECT s.name, s.avatar_emoji, COUNT(b.id) AS bookings,
-             COALESCE(SUM(b.final_price), 0) AS revenue
-      FROM stylists s
-      LEFT JOIN bookings b ON b.stylist_id = s.id AND b.salon_id = $1
-        AND b.status IN ('completed', 'confirmed')
-        AND b.booking_date >= CURRENT_DATE - $2::int
-      WHERE s.salon_id = $1 AND s.is_active = TRUE
-      GROUP BY s.id ORDER BY revenue DESC
-    `, [sid, days])
-
-    // 8. Period comparison (this period vs last period)
-    const [currentPeriod] = await db.query(`
-      SELECT COALESCE(SUM(final_price), 0) AS revenue, COUNT(*) AS bookings
-      FROM bookings WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
-        AND booking_date >= CURRENT_DATE - $2::int
-    `, [sid, days])
-    const [prevPeriod] = await db.query(`
-      SELECT COALESCE(SUM(final_price), 0) AS revenue, COUNT(*) AS bookings
-      FROM bookings WHERE salon_id = $1 AND status IN ('completed', 'confirmed')
-        AND booking_date >= CURRENT_DATE - ($2::int * 2) AND booking_date < CURRENT_DATE - $2::int
-    `, [sid, days])
+    const data = await cached(`analytics:${sid}:${days}`, 60, async () => {
+    // Run ALL queries in parallel
+    const [
+      [dailyRevenue], [topServices], [topCustomers],
+      [channelSplit], [paymentSplit], [peakHours],
+      [stylistPerf], [currentPeriod], [prevPeriod]
+    ] = await Promise.all([
+      db.query(`SELECT d::date AS date, COALESCE(SUM(b.final_price),0) AS revenue, COUNT(b.id) AS bookings
+        FROM generate_series(CURRENT_DATE - $2::int + 1, CURRENT_DATE, '1 day') d
+        LEFT JOIN bookings b ON b.booking_date = d::date AND b.salon_id = $1 AND b.status IN ('completed','confirmed')
+        GROUP BY d::date ORDER BY d::date`, [sid, days]),
+      db.query(`SELECT bs.service_name AS name, COUNT(*) AS bookings, SUM(bs.service_price) AS revenue
+        FROM booking_services bs JOIN bookings b ON b.id = bs.booking_id
+        WHERE b.salon_id = $1 AND b.status IN ('completed','confirmed') AND b.booking_date >= CURRENT_DATE - $2::int
+        GROUP BY bs.service_name ORDER BY revenue DESC LIMIT 8`, [sid, days]),
+      db.query(`SELECT customer_name AS name, customer_phone AS phone, COUNT(*) AS visits, SUM(final_price) AS total_spent
+        FROM bookings WHERE salon_id = $1 AND status IN ('completed','confirmed') AND booking_date >= CURRENT_DATE - $2::int AND customer_phone != 'walk-in'
+        GROUP BY customer_name, customer_phone ORDER BY total_spent DESC LIMIT 5`, [sid, days]),
+      db.query(`SELECT SUM(CASE WHEN booking_code LIKE 'WI%' THEN 1 ELSE 0 END) AS walkin,
+        SUM(CASE WHEN booking_code NOT LIKE 'WI%' THEN 1 ELSE 0 END) AS online, COUNT(*) AS total
+        FROM bookings WHERE salon_id = $1 AND status IN ('completed','confirmed') AND booking_date >= CURRENT_DATE - $2::int`, [sid, days]),
+      db.query(`SELECT payment_method, COUNT(*) AS count, SUM(final_price) AS amount
+        FROM bookings WHERE salon_id = $1 AND status IN ('completed','confirmed') AND booking_date >= CURRENT_DATE - $2::int
+        GROUP BY payment_method ORDER BY amount DESC`, [sid, days]),
+      db.query(`SELECT EXTRACT(HOUR FROM start_time)::int AS hour, COUNT(*) AS count
+        FROM bookings WHERE salon_id = $1 AND status IN ('completed','confirmed') AND booking_date >= CURRENT_DATE - $2::int
+        GROUP BY hour ORDER BY hour`, [sid, days]),
+      db.query(`SELECT s.name, s.avatar_emoji, COUNT(b.id) AS bookings, COALESCE(SUM(b.final_price),0) AS revenue
+        FROM stylists s LEFT JOIN bookings b ON b.stylist_id = s.id AND b.salon_id = $1
+        AND b.status IN ('completed','confirmed') AND b.booking_date >= CURRENT_DATE - $2::int
+        WHERE s.salon_id = $1 AND s.is_active = TRUE GROUP BY s.id ORDER BY revenue DESC`, [sid, days]),
+      db.query(`SELECT COALESCE(SUM(final_price),0) AS revenue, COUNT(*) AS bookings
+        FROM bookings WHERE salon_id = $1 AND status IN ('completed','confirmed') AND booking_date >= CURRENT_DATE - $2::int`, [sid, days]),
+      db.query(`SELECT COALESCE(SUM(final_price),0) AS revenue, COUNT(*) AS bookings
+        FROM bookings WHERE salon_id = $1 AND status IN ('completed','confirmed')
+        AND booking_date >= CURRENT_DATE - ($2::int * 2) AND booking_date < CURRENT_DATE - $2::int`, [sid, days]),
+    ])
 
     const cur = currentPeriod[0] || {}
     const prev = prevPeriod[0] || {}
-    const revGrowth = prev.revenue > 0 ? Math.round(((cur.revenue - prev.revenue) / prev.revenue) * 100) : null
-    const bookGrowth = prev.bookings > 0 ? Math.round(((cur.bookings - prev.bookings) / prev.bookings) * 100) : null
 
     res.json({
       daily_revenue: dailyRevenue,
@@ -249,10 +201,13 @@ router.get('/analytics', authenticateSalonOwner, async (req, res) => {
       comparison: {
         current: { revenue: parseFloat(cur.revenue), bookings: parseInt(cur.bookings) },
         previous: { revenue: parseFloat(prev.revenue), bookings: parseInt(prev.bookings) },
-        revenue_growth: revGrowth,
-        bookings_growth: bookGrowth,
+        revenue_growth: prev.revenue > 0 ? Math.round(((cur.revenue - prev.revenue) / prev.revenue) * 100) : null,
+        bookings_growth: prev.bookings > 0 ? Math.round(((cur.bookings - prev.bookings) / prev.bookings) * 100) : null,
       }
-    })
+    }
+    }) // end cached
+
+    res.json(data)
   } catch (error) {
     console.error('Analytics error:', error)
     res.status(500).json({ error: 'Failed to load analytics' })
