@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiCalendar, FiDollarSign, FiClock, FiStar, FiMail, FiExternalLink, FiCopy, FiCheck, FiPlus, FiArrowRight } from 'react-icons/fi'
+import { FiCalendar, FiDollarSign, FiClock, FiStar, FiMail, FiExternalLink, FiCopy, FiCheck, FiPlus, FiArrowRight, FiSend } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 import SalonOwnerLayout, { useSalonOwnerApi } from '../../components/marketplace/SalonOwnerLayout'
 import toast from 'react-hot-toast'
 
@@ -160,23 +161,36 @@ export default function SalonOwnerDashboard() {
             </div>
           </div>
 
-          {quickSuccess ? (
-            <div className="mx-5 mb-5 flex items-center justify-between bg-white rounded-xl p-4 border border-green-200 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <FiCheck className="w-6 h-6 text-green-600" />
+          {quickSuccess ? (() => {
+            const phone = quickSuccess.customer_phone?.replace(/\D/g, '')
+            const svcNames = quickSuccess.services?.map(s => s.name).join(', ') || ''
+            const waMsg = `Hi ${quickSuccess.customer_name}! 😊\n\nThank you for visiting *${salon?.name || 'our salon'}*!\n\nBill Summary:\n${svcNames ? `Services: ${svcNames}\n` : ''}Amount Paid: *₹${quickSuccess.final_price}*\nCode: ${quickSuccess.booking_code}\n\nWe hope you loved the experience! See you again soon! 💈✨`
+            const waLink = phone && phone !== 'walk-in' ? `https://wa.me/91${phone}?text=${encodeURIComponent(waMsg)}` : null
+            return (
+            <div className="mx-5 mb-5 bg-white rounded-xl p-4 border border-green-200 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <FiCheck className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-green-800">₹{quickSuccess.final_price} billed!</p>
+                    <p className="text-sm text-green-600">{quickSuccess.customer_name} &bull; <span className="font-mono">{quickSuccess.booking_code}</span></p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-lg font-bold text-green-800">₹{quickSuccess.final_price} billed!</p>
-                  <p className="text-sm text-green-600">{quickSuccess.customer_name} &bull; <span className="font-mono">{quickSuccess.booking_code}</span></p>
-                </div>
+                <button onClick={() => { setQuickSuccess(null); setQuickServices([]); setQuickName(''); setQuickPhone(''); setQuickStylist(null); setQuickPayment('cash') }}
+                  className="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition shadow-md shadow-green-200">
+                  + New Bill
+                </button>
               </div>
-              <button onClick={() => { setQuickSuccess(null); setQuickServices([]); setQuickName(''); setQuickPhone(''); setQuickStylist(null); setQuickPayment('cash') }}
-                className="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition shadow-md shadow-green-200">
-                + New Bill
-              </button>
-            </div>
-          ) : (
+              {waLink && (
+                <a href={waLink} target="_blank" rel="noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-sm font-semibold hover:bg-green-100 transition">
+                  <FaWhatsapp className="w-4 h-4" /> Send Receipt on WhatsApp
+                </a>
+              )}
+            </div>)
+          })() : (
             <div className="px-5 pb-5">
               {/* Step 1: Services - always visible */}
               <div className="mb-4">

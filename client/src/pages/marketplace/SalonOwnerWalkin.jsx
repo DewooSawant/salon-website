@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { FiUser, FiPhone, FiCheck, FiX, FiPrinter, FiRefreshCw, FiClock, FiDollarSign, FiPercent } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 import SalonOwnerLayout, { useSalonOwnerApi } from '../../components/marketplace/SalonOwnerLayout'
 import toast from 'react-hot-toast'
 
@@ -168,24 +169,40 @@ export default function SalonOwnerWalkin() {
         <div className="lg:col-span-2 space-y-4">
 
           {/* Success Banner */}
-          {lastBill && (
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-5 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <FiCheck className="w-6 h-6 text-green-600" />
+          {lastBill && (() => {
+            const phone = lastBill.customer_phone?.replace(/\D/g, '')
+            const salonName = (() => { try { return JSON.parse(localStorage.getItem('salonInfo'))?.name } catch { return 'our salon' } })()
+            const svcNames = lastBill.services?.map(s => s.name).join(', ') || ''
+            const waMsg = `Hi ${lastBill.customer_name}! 😊\n\nThank you for visiting *${salonName}*!\n\nBill Summary:\n${svcNames ? `Services: ${svcNames}\n` : ''}Amount Paid: *₹${lastBill.final_price}*\nCode: ${lastBill.booking_code}\n\nWe hope you loved the experience! See you again soon! 💈✨`
+            const waLink = phone && phone !== 'walk-in' ? `https://wa.me/91${phone}?text=${encodeURIComponent(waMsg)}` : null
+            return (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <FiCheck className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-green-800">Bill Generated Successfully!</p>
+                    <p className="text-sm text-green-600">
+                      {lastBill.customer_name} &bull; Code: <span className="font-mono font-bold">{lastBill.booking_code}</span> &bull; ₹{lastBill.final_price}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-bold text-green-800">Bill Generated Successfully!</p>
-                  <p className="text-sm text-green-600">
-                    {lastBill.customer_name} &bull; Code: <span className="font-mono font-bold">{lastBill.booking_code}</span> &bull; ₹{lastBill.final_price}
-                  </p>
-                </div>
+                <button onClick={resetForm} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition text-sm">
+                  <FiRefreshCw className="w-4 h-4" /> New Bill
+                </button>
               </div>
-              <button onClick={resetForm} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition text-sm">
-                <FiRefreshCw className="w-4 h-4" /> New Bill
-              </button>
-            </div>
-          )}
+              {waLink ? (
+                <a href={waLink} target="_blank" rel="noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition">
+                  <FaWhatsapp className="w-5 h-5" /> Send Receipt on WhatsApp
+                </a>
+              ) : (
+                <p className="text-xs text-green-600 text-center">Add phone number to send WhatsApp receipt</p>
+              )}
+            </div>)
+          })()}
 
           {/* Customer Info */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5" ref={suggestRef}>
