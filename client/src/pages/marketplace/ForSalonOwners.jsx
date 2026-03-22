@@ -56,7 +56,7 @@ const features = [
     desc: 'Full walk-in billing page — select services by category, assign stylist, apply discount, choose payment method.',
     descMr: 'पूर्ण वॉक-इन बिलिंग — कॅटेगरीनुसार सर्व्हिस निवडा, स्टायलिस्ट असाइन करा, डिस्काउंट द्या.',
     color: 'from-green-600 to-teal-600',
-    screenshot: '/screenshots/billing.png',
+    screenshot: '/screenshots/bookings.png',
     highlights: ['Service grid by category', 'Stylist assignment', 'Discount & payment method'],
   },
   {
@@ -67,6 +67,15 @@ const features = [
     color: 'from-pink-500 to-rose-600',
     screenshot: '/screenshots/quick-billing.png',
     highlights: ['Your salon page (stylo.sbs/your-salon)', 'Instant notification', 'Auto-confirm bookings'],
+  },
+  {
+    emoji: '💪', title: 'Staff Pay',
+    titleMr: 'स्टाफ पगार व्यवस्थापन',
+    desc: 'Set salary, commission %. Auto-calculate monthly pay. Generate salary slips. Track per stylist revenue.',
+    descMr: 'पगार, कमिशन % सेट करा. मासिक पे ऑटो कॅल्क्युलेट. सॅलरी स्लिप बनवा.',
+    color: 'from-amber-500 to-orange-600',
+    screenshot: '/screenshots/staff-pay.png',
+    highlights: ['Salary + Commission tracking', 'Monthly payment records', 'Printable salary slips'],
   },
 ]
 
