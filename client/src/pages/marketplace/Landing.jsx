@@ -537,16 +537,16 @@ export default function Landing() {
 
               <div className="flex flex-wrap gap-4">
                 <Link
-                  to="/salon-owner/register"
+                  to="/for-salon-owners"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-700 rounded-2xl text-lg font-bold hover:bg-gray-100 transition shadow-xl"
                 >
-                  Register Your Salon Free <FiArrowRight />
+                  Learn More <FiArrowRight />
                 </Link>
                 <Link
-                  to="/salon-owner/login"
+                  to="/salon-owner/register"
                   className="inline-flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white rounded-2xl text-lg font-semibold hover:bg-white/10 transition"
                 >
-                  Salon Owner Login
+                  Register Your Salon Free
                 </Link>
               </div>
             </div>
@@ -591,9 +591,9 @@ export default function Landing() {
             <div>
               <h4 className="font-semibold mb-4">For Salon Owners</h4>
               <ul className="space-y-3 text-sm text-gray-400">
+                <li><Link to="/for-salon-owners" className="hover:text-white transition">Why Stylo?</Link></li>
                 <li><Link to="/salon-owner/register" className="hover:text-white transition">Register Salon</Link></li>
                 <li><Link to="/salon-owner/login" className="hover:text-white transition">Salon Login</Link></li>
-                <li><Link to="/salon-owner/dashboard" className="hover:text-white transition">Dashboard</Link></li>
               </ul>
             </div>
           </div>

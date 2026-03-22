@@ -33,7 +33,7 @@ export default function MarketplaceNavbar({ transparent = false }) {
 
   const navLinks = [
     { to: '/discover', label: 'Find Salons', icon: FiSearch },
-    { to: '/salon-owner/register', label: 'List Your Salon', icon: FiScissors },
+    { to: '/for-salon-owners', label: 'List Your Salon', icon: FiScissors },
   ]
 
   const authLinks = isAuthenticated
