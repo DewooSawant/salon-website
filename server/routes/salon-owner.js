@@ -190,7 +190,7 @@ router.get('/analytics', authenticateSalonOwner, async (req, res) => {
     const cur = currentPeriod[0] || {}
     const prev = prevPeriod[0] || {}
 
-    res.json({
+    return {
       daily_revenue: dailyRevenue,
       top_services: topServices,
       top_customers: topCustomers,
