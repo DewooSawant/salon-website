@@ -234,25 +234,70 @@ export default function ForSalonOwners() {
         </div>
       </section>
 
-      {/* Pricing */}
+      {/* Pricing - Transparent */}
       <section className="py-12 sm:py-16 px-4 bg-brand-50">
-        <div className="max-w-3xl mx-auto text-center">
-          <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">
-            किंमत किती?
+        <div className="max-w-4xl mx-auto">
+          <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-2">
+            किंमत किती? / Pricing
           </motion.h2>
-          <motion.div {...anim} className="bg-gradient-to-br from-brand-600 to-accent-500 rounded-3xl p-8 text-white shadow-xl mt-6">
-            <div className="text-6xl font-black mb-2">FREE</div>
-            <p className="text-lg text-white/90 mb-6">मोफत. कोणताही हिडन चार्ज नाही.</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-left max-w-md mx-auto">
-              {['Unlimited Walk-in Bills', 'Customer CRM', 'Analytics & Reports', 'Staff Management', 'Online Booking', 'WhatsApp Receipts'].map(f => (
-                <div key={f} className="flex items-center gap-1.5 text-sm">
-                  <FiCheck className="w-4 h-4 text-green-300 shrink-0" /> {f}
-                </div>
-              ))}
+          <motion.p {...anim} className="text-center text-gray-500 mb-8">पूर्ण transparent. कोणताही hidden charge नाही.</motion.p>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            {/* Free Plan */}
+            <motion.div {...anim} className="bg-white rounded-2xl border-2 border-green-200 p-6 relative overflow-hidden">
+              <div className="absolute top-3 right-3 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">CURRENT</div>
+              <div className="text-3xl mb-1">🎉</div>
+              <h3 className="text-2xl font-black text-gray-900 mb-1">Free Plan</h3>
+              <p className="text-gray-500 text-sm mb-4">आत्ता आणि कायमचं मोफत</p>
+              <div className="text-4xl font-black text-green-600 mb-4">₹0<span className="text-base font-normal text-gray-400">/month</span></div>
+              <ul className="space-y-2 mb-6">
+                {['Unlimited Walk-in Billing', 'Customer CRM & History', 'Analytics & Daily Reports', 'Staff Salary & Commission', 'Online Booking Page', 'WhatsApp Receipts', 'Stylist Performance Tracking'].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
+                    <FiCheck className="w-4 h-4 text-green-500 shrink-0" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/salon-owner/register" className="block w-full py-3 bg-green-600 text-white rounded-xl text-center font-bold hover:bg-green-700 transition">
+                Register Free →
+              </Link>
+            </motion.div>
+
+            {/* Premium Plan - Coming Soon */}
+            <motion.div {...anim} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-gray-200 p-6 relative overflow-hidden opacity-90">
+              <div className="absolute top-3 right-3 px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold">COMING SOON</div>
+              <div className="text-3xl mb-1">🚀</div>
+              <h3 className="text-2xl font-black text-gray-900 mb-1">Pro Plan</h3>
+              <p className="text-gray-500 text-sm mb-4">Advanced features for growing salons</p>
+              <div className="text-4xl font-black text-brand-600 mb-4">Coming Soon</div>
+              <ul className="space-y-2 mb-6">
+                {['Everything in Free, plus:', 'SMS & WhatsApp Reminders', 'Loyalty Points & Rewards', 'Membership Plans', 'Inventory Management', 'Priority Support', 'Custom Branding'].map((f, i) => (
+                  <li key={f} className={`flex items-center gap-2 text-sm ${i === 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
+                    {i === 0 ? '✨' : <FiCheck className="w-4 h-4 text-brand-400 shrink-0" />} {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl text-center font-bold">
+                Coming Soon
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Trust Section */}
+          <motion.div {...anim} className="mt-8 bg-white rounded-2xl border border-amber-200 p-5">
+            <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+              🤔 "खरंच मोफत आहे का? Catch काय आहे?"
+            </h3>
+            <div className="space-y-3 text-sm text-gray-600 leading-relaxed">
+              <p>
+                <strong className="text-gray-900">हो, Basic plan कायमचं मोफत आहे.</strong> Walk-in billing, CRM, analytics, staff management — यावर कधीही charge नाही.
+              </p>
+              <p>
+                <strong className="text-gray-900">आम्ही पैसे कसे कमावतो?</strong> Future मध्ये Pro plan असेल — SMS reminders, loyalty points, inventory सारख्या advanced features साठी. पण basic features FREE राहतील.
+              </p>
+              <p>
+                <strong className="text-gray-900">आत्ता मोफत का?</strong> आम्ही पुण्यात नवीन आहोत. सुरुवातीला join करणाऱ्या salon owners ना सगळं FREE मिळेल — कायमचं. WhatsApp Business, Google My Business सारखंच model.
+              </p>
             </div>
-            <Link to="/salon-owner/register" className="inline-block mt-8 px-8 py-4 bg-white text-brand-700 rounded-2xl text-lg font-bold shadow-lg hover:bg-gray-100 transition">
-              Register Your Salon Free →
-            </Link>
           </motion.div>
         </div>
       </section>
