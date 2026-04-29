@@ -1,7 +1,10 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-import { testConnection } from './db/config_pg.js'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+import db, { testConnection } from './db/config_pg.js'
 
 // Legacy routes (single-salon, kept for backward compatibility)
 import authRouter from './routes/auth.js'
@@ -69,6 +72,29 @@ app.get('/api/health', async (req, res) => {
     version: '3.1.0',
     timestamp: new Date().toISOString(),
   })
+})
+
+// One-shot migration endpoint. Protected by MIGRATE_SECRET env var.
+// Delete this route after successful migration.
+app.post('/api/admin/migrate', async (req, res) => {
+  const secret = req.headers['x-migrate-secret']
+  if (!process.env.MIGRATE_SECRET || secret !== process.env.MIGRATE_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+  try {
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
+    const sqlPath = join(__dirname, 'db', 'migration_v2_postgres.sql')
+    const sql = readFileSync(sqlPath, 'utf8')
+    await db.pool.query(sql)
+    const [tables] = await db.query(
+      "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
+    )
+    res.json({ message: 'Migration applied', tables: tables.map(t => t.tablename) })
+  } catch (err) {
+    console.error('Migration error:', err)
+    res.status(500).json({ error: err.message })
+  }
 })
 
 app.get('/api', (req, res) => {
