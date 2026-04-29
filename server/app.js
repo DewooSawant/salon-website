@@ -76,7 +76,7 @@ app.get('/api/health', async (req, res) => {
 
 // One-shot migration endpoint. Protected by MIGRATE_SECRET env var.
 // Delete this route after successful migration.
-app.post('/api/admin/migrate', async (req, res) => {
+app.post('/api/_migrate', async (req, res) => {
   const secret = req.headers['x-migrate-secret']
   if (!process.env.MIGRATE_SECRET || secret !== process.env.MIGRATE_SECRET) {
     return res.status(403).json({ error: 'Forbidden' })
