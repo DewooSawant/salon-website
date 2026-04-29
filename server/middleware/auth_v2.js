@@ -60,7 +60,7 @@ export async function authenticateSalonOwner(req, res, next) {
     }
 
     const [users] = await db.query(
-      'SELECT so.id, so.salon_id, so.name, so.email, so.role FROM salon_owners so WHERE so.id = $1 AND so.is_active = TRUE',
+      'SELECT so.id, so.salon_id, so.name, so.phone, so.role FROM salon_owners so WHERE so.id = $1 AND so.is_active = TRUE',
       [decoded.id]
     )
 

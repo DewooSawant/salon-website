@@ -2,27 +2,12 @@ import { Router } from 'express'
 import bcrypt from 'bcryptjs'
 import multer from 'multer'
 import path from 'path'
-import { fileURLToPath } from 'url'
-import fs from 'fs'
+import { put, del } from '@vercel/blob'
 import db, { pool } from '../db/config_pg.js'
-import { cached, invalidate } from '../db/redis.js'
 import { generateToken, authenticateSalonOwner } from '../middleware/auth_v2.js'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const uploadsDir = path.join(__dirname, '..', 'public', 'uploads')
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true })
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase()
-    const name = `salon-${req.user.salon_id}-${Date.now()}${ext}`
-    cb(null, name)
-  }
-})
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.webp']
@@ -34,17 +19,23 @@ const upload = multer({
 
 const router = Router()
 
+const PHONE_RE = /^[6-9]\d{9}$/
+
 // POST /api/salon-owner/register
 router.post('/register', async (req, res) => {
   try {
-    const { owner_name, email, password, phone, salon_name, address, city, state, pincode, latitude, longitude, salon_phone, whatsapp, type, opening_time, closing_time, working_days } = req.body
+    const { owner_name, phone, password, salon_name, address, city, state, pincode, latitude, longitude, salon_phone, whatsapp, type, opening_time, closing_time, working_days } = req.body
 
-    if (!owner_name || !email || !password || !salon_name || !address || !city || !latitude || !longitude) {
-      return res.status(400).json({ error: 'Required: owner_name, email, password, salon_name, address, city, latitude, longitude' })
+    if (!owner_name || !phone || !password || !salon_name || !address || !city || !latitude || !longitude) {
+      return res.status(400).json({ error: 'Required: owner_name, phone, password, salon_name, address, city, latitude, longitude' })
     }
 
-    const [existing] = await db.query('SELECT id FROM salon_owners WHERE email = $1', [email])
-    if (existing.length > 0) return res.status(409).json({ error: 'Email already registered' })
+    const cleanPhone = String(phone).replace(/\D/g, '').slice(-10)
+    if (!PHONE_RE.test(cleanPhone)) return res.status(400).json({ error: 'Enter a valid 10-digit Indian mobile number' })
+    if (String(password).length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' })
+
+    const [existing] = await db.query('SELECT id FROM salon_owners WHERE phone = $1', [cleanPhone])
+    if (existing.length > 0) return res.status(409).json({ error: 'Phone number already registered' })
 
     const baseSlug = salon_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
     const citySlug = city.toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -61,15 +52,15 @@ router.post('/register', async (req, res) => {
         `INSERT INTO salons (name, slug, address, city, state, pincode, latitude, longitude, phone, whatsapp, type, opening_time, closing_time, working_days)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
         [salon_name, slug, address, city, state || null, pincode || null, parseFloat(latitude), parseFloat(longitude),
-         salon_phone || phone, whatsapp || null, type || 'unisex', opening_time || '10:00:00', closing_time || '21:00:00',
+         salon_phone || cleanPhone, whatsapp || null, type || 'unisex', opening_time || '10:00:00', closing_time || '21:00:00',
          JSON.stringify(working_days || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])]
       )
 
       const hashedPassword = await bcrypt.hash(password, 12)
       const { rows: [owner] } = await client.query(
-        `INSERT INTO salon_owners (salon_id, name, email, password, phone, role)
-         VALUES ($1,$2,$3,$4,$5,'owner') RETURNING id`,
-        [salon.id, owner_name, email, hashedPassword, phone || null]
+        `INSERT INTO salon_owners (salon_id, name, phone, password, role)
+         VALUES ($1,$2,$3,$4,'owner') RETURNING id`,
+        [salon.id, owner_name, cleanPhone, hashedPassword]
       )
 
       // Default categories
@@ -84,7 +75,7 @@ router.post('/register', async (req, res) => {
       await client.query('COMMIT')
 
       const token = generateToken({ id: owner.id, salon_id: salon.id, type: 'salon_owner' })
-      res.status(201).json({ message: 'Salon registered', token, salon: { id: salon.id, name: salon_name, slug }, owner: { id: owner.id, name: owner_name, email } })
+      res.status(201).json({ message: 'Salon registered', token, salon: { id: salon.id, name: salon_name, slug }, owner: { id: owner.id, name: owner_name, phone: cleanPhone } })
     } catch (err) { await client.query('ROLLBACK'); throw err }
     finally { client.release() }
   } catch (error) {
@@ -96,12 +87,14 @@ router.post('/register', async (req, res) => {
 // POST /api/salon-owner/login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body
-    if (!email || !password) return res.status(400).json({ error: 'Email and password required' })
+    const { phone, password } = req.body
+    if (!phone || !password) return res.status(400).json({ error: 'Phone and password required' })
+
+    const cleanPhone = String(phone).replace(/\D/g, '').slice(-10)
 
     const [users] = await db.query(
       `SELECT so.*, s.name as salon_name, s.slug as salon_slug FROM salon_owners so
-       JOIN salons s ON s.id = so.salon_id WHERE so.email = $1 AND so.is_active = TRUE`, [email]
+       JOIN salons s ON s.id = so.salon_id WHERE so.phone = $1 AND so.is_active = TRUE`, [cleanPhone]
     )
     if (users.length === 0) return res.status(401).json({ error: 'Invalid credentials' })
 
@@ -111,8 +104,9 @@ router.post('/login', async (req, res) => {
     await db.query('UPDATE salon_owners SET last_login = NOW() WHERE id = $1', [user.id])
     const token = generateToken({ id: user.id, salon_id: user.salon_id, type: 'salon_owner' })
 
-    res.json({ message: 'Login successful', token, user: { id: user.id, name: user.name, email: user.email, role: user.role }, salon: { id: user.salon_id, name: user.salon_name, slug: user.salon_slug } })
+    res.json({ message: 'Login successful', token, user: { id: user.id, name: user.name, phone: user.phone, role: user.role }, salon: { id: user.salon_id, name: user.salon_name, slug: user.salon_slug } })
   } catch (error) {
+    console.error('Login error:', error)
     res.status(500).json({ error: 'Login failed' })
   }
 })
@@ -149,7 +143,6 @@ router.get('/analytics', authenticateSalonOwner, async (req, res) => {
     const { period } = req.query
     const days = period === '30d' ? 30 : 7
 
-    const data = await cached(`analytics:${sid}:${days}`, 60, async () => {
     // Run ALL queries in parallel
     const [
       [dailyRevenue], [topServices], [topCustomers],
@@ -190,7 +183,7 @@ router.get('/analytics', authenticateSalonOwner, async (req, res) => {
     const cur = currentPeriod[0] || {}
     const prev = prevPeriod[0] || {}
 
-    return {
+    res.json({
       daily_revenue: dailyRevenue,
       top_services: topServices,
       top_customers: topCustomers,
@@ -204,10 +197,7 @@ router.get('/analytics', authenticateSalonOwner, async (req, res) => {
         revenue_growth: prev.revenue > 0 ? Math.round(((cur.revenue - prev.revenue) / prev.revenue) * 100) : null,
         bookings_growth: prev.bookings > 0 ? Math.round(((cur.bookings - prev.bookings) / prev.bookings) * 100) : null,
       }
-    }
-    }) // end cached
-
-    res.json(data)
+    })
   } catch (error) {
     console.error('Analytics error:', error)
     res.status(500).json({ error: 'Failed to load analytics' })
@@ -565,31 +555,34 @@ router.post('/reviews/:id/reply', authenticateSalonOwner, async (req, res) => {
 // IMAGE UPLOAD
 // =====================================================
 
-// POST /api/salon-owner/upload - Upload salon image
+// POST /api/salon-owner/upload - Upload salon image to Vercel Blob
 router.post('/upload', authenticateSalonOwner, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' })
 
     const { field } = req.body // 'cover_image_url', 'logo_url', or 'gallery'
-    const imageUrl = `/uploads/${req.file.filename}`
+    const ext = path.extname(req.file.originalname).toLowerCase()
+    const filename = `salon-${req.user.salon_id}/${field || 'gallery'}-${Date.now()}${ext}`
 
-    // If a field is specified, auto-update the salon record
+    const blob = await put(filename, req.file.buffer, {
+      access: 'public',
+      contentType: req.file.mimetype,
+    })
+
+    // Delete previous blob URL and update the salon record if a field is specified
     if (field && ['cover_image_url', 'logo_url'].includes(field)) {
-      // Delete old file if exists
       const [salon] = await db.query(`SELECT ${field} FROM salons WHERE id=$1`, [req.user.salon_id])
       const oldUrl = salon[0]?.[field]
-      if (oldUrl && oldUrl.startsWith('/uploads/')) {
-        const oldPath = path.join(__dirname, '..', 'public', oldUrl)
-        fs.unlink(oldPath, () => {}) // Ignore errors
+      if (oldUrl && oldUrl.includes('blob.vercel-storage.com')) {
+        del(oldUrl).catch(() => {}) // best-effort
       }
-
-      await db.query(`UPDATE salons SET ${field} = $1 WHERE id = $2`, [imageUrl, req.user.salon_id])
+      await db.query(`UPDATE salons SET ${field} = $1 WHERE id = $2`, [blob.url, req.user.salon_id])
     }
 
     res.json({
       message: 'Image uploaded',
-      url: imageUrl,
-      full_url: `${req.protocol}://${req.get('host')}${imageUrl}`,
+      url: blob.url,
+      full_url: blob.url,
     })
   } catch (error) {
     console.error('Upload error:', error)

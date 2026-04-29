@@ -103,9 +103,9 @@ CREATE TABLE IF NOT EXISTS salon_owners (
     id SERIAL PRIMARY KEY,
     salon_id INT NOT NULL REFERENCES salons(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(20) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
+    email VARCHAR(255),
     role VARCHAR(20) DEFAULT 'owner' CHECK (role IN ('owner', 'admin', 'staff')),
     is_active BOOLEAN DEFAULT TRUE,
     last_login TIMESTAMPTZ,
@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS salon_owners (
 );
 
 CREATE INDEX IF NOT EXISTS idx_salon_owners_salon ON salon_owners(salon_id);
+CREATE INDEX IF NOT EXISTS idx_salon_owners_phone ON salon_owners(phone);
 
 -- =====================================================
 -- SERVICE CATEGORIES
@@ -379,11 +380,11 @@ INSERT INTO salons (name, slug, tagline, description, address, city, state, pinc
 ('The Beauty Bar', 'beauty-bar-koregaon-park', 'Premium Women Salon', 'Luxury salon experience for women.', 'Lane 7, Koregaon Park', 'Pune', 'Maharashtra', '411001', 18.5362, 73.8937, '+91 98765 43212', '919876543212', 'women', 4.8, 200)
 ON CONFLICT (slug) DO NOTHING;
 
-INSERT INTO salon_owners (salon_id, name, email, password, phone, role) VALUES
-(1, 'Rajesh Owner', 'rajesh@glamourcuts.com', '$placeholder$', '9876543210', 'owner'),
-(2, 'Amit Owner', 'amit@stylestudio.com', '$placeholder$', '9876543211', 'owner'),
-(3, 'Priya Owner', 'priya@beautybar.com', '$placeholder$', '9876543212', 'owner')
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO salon_owners (salon_id, name, phone, password, role) VALUES
+(1, 'Rajesh Owner', '9876543210', '$placeholder$', 'owner'),
+(2, 'Amit Owner', '9876543211', '$placeholder$', 'owner'),
+(3, 'Priya Owner', '9876543212', '$placeholder$', 'owner')
+ON CONFLICT (phone) DO NOTHING;
 
 INSERT INTO service_categories (salon_id, name, slug, icon, display_order) VALUES
 (1, 'Haircut', 'haircut', '✂️', 1),

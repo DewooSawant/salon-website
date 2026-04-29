@@ -151,18 +151,16 @@ function SkeletonCard() {
 
 export default function Discover() {
   const [searchParams] = useSearchParams()
-  const { getLocation, isAuthenticated, api } = useCustomer()
+  const { getLocation } = useCustomer()
   const [salons, setSalons] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState(searchParams.get('search') || '')
   const [activeCategory, setActiveCategory] = useState('')
   const [filter, setFilter] = useState({ type: '', sort: 'distance', radius: 10000 })
-  const [favorites, setFavorites] = useState(new Set())
   const [showFilters, setShowFilters] = useState(false)
 
   useEffect(() => {
     fetchSalons()
-    if (isAuthenticated) fetchFavorites()
   }, [filter, activeCategory])
 
   // Also fetch on initial mount if search param is present
@@ -199,24 +197,8 @@ export default function Discover() {
     }
   }
 
-  const fetchFavorites = async () => {
-    try {
-      const res = await api.get('/customers/favorites')
-      setFavorites(new Set(res.data.favorites.map(f => f.id)))
-    } catch {}
-  }
-
-  const toggleFavorite = async (salonId) => {
-    if (!isAuthenticated) return toast.error('Please login to save favorites')
-    try {
-      const res = await api.post(`/customers/favorites/${salonId}`)
-      setFavorites(prev => {
-        const next = new Set(prev)
-        res.data.favorited ? next.add(salonId) : next.delete(salonId)
-        return next
-      })
-      toast.success(res.data.message)
-    } catch { toast.error('Failed to update favorite') }
+  const toggleFavorite = () => {
+    toast('Favorites coming soon', { icon: '💫' })
   }
 
   const handleSearch = (e) => {
@@ -409,7 +391,7 @@ export default function Discover() {
                   key={salon.id}
                   salon={salon}
                   onFavorite={toggleFavorite}
-                  isFavorite={favorites.has(salon.id)}
+                  isFavorite={false}
                 />
               ))}
             </AnimatePresence>

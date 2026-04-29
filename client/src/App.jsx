@@ -9,8 +9,6 @@ import { CustomerProvider } from './context/CustomerContext'
 import Landing from './pages/marketplace/Landing'
 import Discover from './pages/marketplace/Discover'
 import SalonProfile from './pages/marketplace/SalonProfile'
-import CustomerLogin from './pages/marketplace/CustomerLogin'
-import MyBookings from './pages/marketplace/MyBookings'
 import SalonOwnerRegister from './pages/marketplace/SalonOwnerRegister'
 import SalonOwnerLogin from './pages/marketplace/SalonOwnerLogin'
 import SalonOwnerDashboard from './pages/marketplace/SalonOwnerDashboard'
@@ -99,8 +97,6 @@ function AppRoutes() {
       <Route path="/" element={<Landing />} />
       <Route path="/discover" element={<Discover />} />
       <Route path="/salon/:slug" element={<SalonProfile />} />
-      <Route path="/login" element={<CustomerLogin />} />
-      <Route path="/my-bookings" element={<MyBookings />} />
 
       {/* ========== SALON OWNER ========== */}
       <Route path="/for-salon-owners" element={<ForSalonOwners />} />

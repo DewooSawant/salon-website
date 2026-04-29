@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { FiGrid, FiScissors, FiUsers, FiCalendar, FiStar, FiSettings, FiLogOut, FiArrowLeft, FiMenu, FiX, FiDollarSign, FiBarChart2, FiUserCheck, FiCreditCard, FiTrendingUp, FiExternalLink } from 'react-icons/fi'
-import NotificationBell from './NotificationBell'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
@@ -83,7 +82,6 @@ export default function SalonOwnerLayout({ children, title }) {
             </Link>
           </div>
           <div className="flex items-center gap-1.5">
-            <NotificationBell />
             <Link to="/discover" className="p-2 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition" title="Marketplace">
               <FiExternalLink className="w-4 h-4 sm:hidden" />
               <span className="hidden sm:inline text-sm px-1">Marketplace</span>

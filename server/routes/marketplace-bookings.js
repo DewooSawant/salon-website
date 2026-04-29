@@ -1,8 +1,6 @@
 import { Router } from 'express'
 import { body, validationResult } from 'express-validator'
 import db, { pool } from '../db/config_pg.js'
-import { authenticateCustomer, optionalAuth } from '../middleware/auth_v2.js'
-import { notifySalon } from '../services/socket.js'
 
 const router = Router()
 
@@ -30,7 +28,7 @@ const validateBooking = [
 ]
 
 // POST /api/marketplace/bookings
-router.post('/', optionalAuth, validateBooking, async (req, res) => {
+router.post('/', validateBooking, async (req, res) => {
   try {
     const errors = validationResult(req)
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
@@ -54,7 +52,6 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
     if (salons.length === 0) return res.status(404).json({ error: 'Salon not found' })
     const salon = salons[0]
 
-    // Get service details using ANY() for array
     const [serviceDetails] = await db.query(
       'SELECT id, name, price, duration FROM services WHERE id = ANY($1) AND salon_id = $2 AND is_active = TRUE',
       [services, salon_id]
@@ -81,17 +78,16 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
     if (conflicts.length > 0) return res.status(409).json({ error: 'Time slot not available' })
 
     const bookingCode = generateBookingCode(salon.slug)
-    const customerId = req.user?.type === 'customer' ? req.user.id : null
 
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
 
       const { rows: [booking] } = await client.query(
-        `INSERT INTO bookings (booking_code, salon_id, customer_id, customer_name, customer_phone, customer_email,
+        `INSERT INTO bookings (booking_code, salon_id, customer_name, customer_phone, customer_email,
          stylist_id, booking_date, start_time, end_time, total_duration, total_price, discount_amount, final_price, notes)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,0,$13,$14) RETURNING id`,
-        [bookingCode, salon_id, customerId, customer_name, customer_phone, customer_email || null,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,0,$12,$13) RETURNING id`,
+        [bookingCode, salon_id, customer_name, customer_phone, customer_email || null,
          stylist_id || null, booking_date, start_time, endTime, totalDuration, totalPrice, totalPrice, notes || null]
       )
 
@@ -103,7 +99,6 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
         )
       }
 
-      // Check auto-confirm setting
       const autoConfirmResult = await client.query(
         'SELECT auto_confirm_bookings FROM salons WHERE id = $1', [salon_id]
       )
@@ -115,7 +110,6 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
         bookingStatus = 'confirmed'
       }
 
-      // Create notification for salon owner
       const serviceNames = serviceDetails.map(s => s.name).join(', ')
       const timeFormatted = start_time.replace(/^(\d{2}):(\d{2}).*/, (_, h, m) => {
         const hr = parseInt(h); return `${hr % 12 || 12}:${m} ${hr >= 12 ? 'PM' : 'AM'}`
@@ -144,25 +138,9 @@ router.post('/', optionalAuth, validateBooking, async (req, res) => {
 
       await client.query('COMMIT')
 
-      // Push real-time notification via WebSocket
-      notifySalon(salon_id, 'new_booking', {
-        title: `New Booking from ${customer_name}`,
-        message: `${serviceNames} on ${booking_date} at ${timeFormatted} • ₹${totalPrice}`,
-        booking_code: bookingCode,
-        customer_name,
-        customer_phone,
-        booking_date,
-        start_time,
-        services: serviceNames,
-        total_price: totalPrice,
-        auto_confirmed: autoConfirm,
-        booking_id: booking.id,
-      })
-
       const customerMsg = `Hi! I've booked at ${salon.name}.\nCode: ${bookingCode}\nDate: ${booking_date}\nTime: ${start_time}\nServices: ${serviceNames}\nTotal: Rs ${totalPrice}`
       const ownerMsg = `🔔 New booking!\nCode: ${bookingCode}\nCustomer: ${customer_name} (${customer_phone})\nDate: ${booking_date} at ${timeFormatted}\nServices: ${serviceNames}\nTotal: Rs ${totalPrice}`
 
-      // Build WhatsApp links
       const ownerPhone = salon.phone?.replace(/\D/g, '')
       const customerWhatsAppLink = salon.whatsapp
         ? `https://wa.me/${salon.whatsapp}?text=${encodeURIComponent(customerMsg)}`
@@ -212,29 +190,6 @@ router.get('/track/:code', async (req, res) => {
     res.json({ booking })
   } catch (error) {
     res.status(500).json({ error: 'Failed to track booking' })
-  }
-})
-
-// PATCH /api/marketplace/bookings/:id/cancel
-router.patch('/:id/cancel', authenticateCustomer, async (req, res) => {
-  try {
-    const { reason } = req.body
-
-    const [bookings] = await db.query(
-      'SELECT id, status FROM bookings WHERE id = $1 AND customer_id = $2', [req.params.id, req.user.id]
-    )
-    if (bookings.length === 0) return res.status(404).json({ error: 'Booking not found' })
-    if (['completed', 'cancelled'].includes(bookings[0].status)) {
-      return res.status(400).json({ error: `Cannot cancel a ${bookings[0].status} booking` })
-    }
-
-    await db.query(
-      'UPDATE bookings SET status = $1, cancellation_reason = $2 WHERE id = $3',
-      ['cancelled', reason || null, req.params.id]
-    )
-    res.json({ message: 'Booking cancelled' })
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to cancel booking' })
   }
 })
 

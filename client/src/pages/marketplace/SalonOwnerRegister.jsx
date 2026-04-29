@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { FiUser, FiMail, FiLock, FiPhone, FiMapPin, FiClock, FiScissors, FiArrowLeft, FiArrowRight, FiCheck } from 'react-icons/fi'
+import { FiUser, FiLock, FiPhone, FiMapPin, FiScissors, FiArrowLeft, FiArrowRight, FiCheck } from 'react-icons/fi'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -15,7 +15,7 @@ export default function SalonOwnerRegister() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     // Step 1: Owner info
-    owner_name: '', email: '', password: '', phone: '',
+    owner_name: '', password: '', phone: '',
     // Step 2: Salon info
     salon_name: '', type: 'unisex', address: '', city: '', state: '', pincode: '',
     // Step 3: Location & Hours
@@ -48,11 +48,23 @@ export default function SalonOwnerRegister() {
   }
 
   const handleSubmit = async () => {
+    const cleanedPhone = form.phone.replace(/\D/g, '')
+    if (!/^[6-9]\d{9}$/.test(cleanedPhone)) {
+      toast.error('Enter a valid 10-digit Indian mobile number')
+      setStep(1)
+      return
+    }
+    if (form.password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      setStep(1)
+      return
+    }
     setLoading(true)
     try {
       const res = await axios.post(`${API_URL}/salon-owner/register`, {
         ...form,
-        salon_phone: form.phone,
+        phone: cleanedPhone,
+        salon_phone: cleanedPhone,
         opening_time: form.opening_time + ':00',
         closing_time: form.closing_time + ':00',
       })
@@ -69,7 +81,10 @@ export default function SalonOwnerRegister() {
 
   const canProceed = () => {
     switch (step) {
-      case 1: return form.owner_name && form.email && form.password && form.phone
+      case 1: {
+        const p = form.phone.replace(/\D/g, '')
+        return form.owner_name && /^[6-9]\d{9}$/.test(p) && form.password.length >= 6
+      }
       case 2: return form.salon_name && form.address && form.city
       case 3: return form.latitude && form.longitude
       default: return false
@@ -123,23 +138,19 @@ export default function SalonOwnerRegister() {
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none" />
                 </div>
                 <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="email" placeholder="Email Address *" value={form.email}
-                    onChange={e => update('email', e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none" />
-                </div>
-                <div className="relative">
                   <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="tel" placeholder="Phone Number *" value={form.phone}
-                    onChange={e => update('phone', e.target.value)}
+                  <input type="tel" placeholder="Phone Number (10 digits) *" value={form.phone}
+                    onChange={e => update('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    maxLength={10}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none" />
                 </div>
                 <div className="relative">
                   <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="password" placeholder="Create Password *" value={form.password}
+                  <input type="password" placeholder="Create Password (min 6 chars) *" value={form.password}
                     onChange={e => update('password', e.target.value)} minLength={6}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none" />
                 </div>
+                <p className="text-xs text-gray-500">Your phone number will be your login ID. Use a 10-digit Indian mobile number.</p>
               </motion.div>
             )}
 

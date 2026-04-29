@@ -1,7 +1,7 @@
 {
   "name": "glamour-cuts-salon",
-  "version": "2.0.0",
-  "description": "Full-stack salon website for Glamour Cuts - Keshav Nagar, Pune",
+  "version": "3.1.0",
+  "description": "Stylo - Salon marketplace (Vercel-ready)",
   "scripts": {
     "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
@@ -10,20 +10,17 @@
     "build": "cd client && npm run build",
     "build:all": "npm run install:all && npm run build",
     "start": "cd server && npm start",
-    "setup": "cd server && npm run setup",
-    "deploy": "npm run build && pm2 restart ecosystem.config.cjs --env production"
+    "migrate": "cd server && npm run migrate"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
   },
   "keywords": [
     "salon",
-    "haircut",
-    "pune",
+    "marketplace",
+    "vercel",
     "react",
     "express"
   ],
-  "author": "Glamour Cuts",
   "license": "MIT"
 }
-

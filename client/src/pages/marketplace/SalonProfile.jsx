@@ -7,7 +7,6 @@ import {
   FiWifi, FiCheckCircle, FiNavigation, FiShare2
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
-import { useCustomer } from '../../context/CustomerContext'
 import MarketplaceNavbar from '../../components/marketplace/MarketplaceNavbar'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -108,8 +107,7 @@ function ReviewCard({ review }) {
 }
 
 function BookingModal({ show, onClose, salon, selectedServices, stylists, totalPrice, totalDuration, slug }) {
-  const { customer, isAuthenticated } = useCustomer()
-  const totalSteps = isAuthenticated ? 2 : 3 // Skip details step if logged in
+  const totalSteps = 3
   const [step, setStep] = useState(1)
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
@@ -119,14 +117,6 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
   const [phone, setPhone] = useState('')
   const [result, setResult] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-
-  // Pre-fill from logged-in customer
-  useEffect(() => {
-    if (customer) {
-      setName(customer.name || '')
-      setPhone(customer.phone || '')
-    }
-  }, [customer])
 
   const fetchSlots = async (selectedDate) => {
     setDate(selectedDate)
@@ -143,11 +133,6 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
     if (!name || !phone) { toast.error('Please fill in your details'); return }
     setSubmitting(true)
     try {
-      // Include auth token if logged in
-      const headers = {}
-      const token = localStorage.getItem('customerToken')
-      if (token) headers.Authorization = `Bearer ${token}`
-
       const res = await axios.post(`${API_URL}/marketplace/bookings`, {
         salon_id: salon.id,
         customer_name: name,
@@ -156,7 +141,7 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
         booking_date: date,
         start_time: time + ':00',
         services: selectedServices.map(s => s.id),
-      }, { headers })
+      })
       setResult(res.data)
       setStep(totalSteps + 1) // Go to success step
       toast.success('Booking confirmed!')
@@ -207,14 +192,6 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
                   i <= step ? 'bg-brand-500' : 'bg-gray-200'
                 }`} />
               ))}
-            </div>
-          )}
-
-          {/* Logged-in user info banner */}
-          {isAuthenticated && step <= totalSteps && (
-            <div className="mx-5 mt-4 flex items-center gap-2 px-3 py-2 bg-green-50 rounded-xl border border-green-100">
-              <FiCheck className="w-4 h-4 text-green-600 shrink-0" />
-              <span className="text-sm text-green-700">Booking as <strong>{customer?.name}</strong> ({customer?.phone})</span>
             </div>
           )}
 
@@ -276,7 +253,7 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
 
                 <button
                   disabled={!date || !time}
-                  onClick={() => setStep(isAuthenticated ? 2 : 2)}
+                  onClick={() => setStep(2)}
                   className="w-full py-3.5 bg-gradient-to-r from-brand-600 to-accent-500 text-white rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:from-brand-700 hover:to-accent-600 transition-all shadow-md shadow-brand"
                 >
                   Continue
@@ -284,8 +261,8 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
               </motion.div>
             )}
 
-            {/* Step 2 (guest only): Details */}
-            {step === 2 && !isAuthenticated && (
+            {/* Step 2: Details */}
+            {step === 2 && (
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                 <div className="space-y-4 mb-5">
                   <div>
@@ -425,7 +402,6 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
 
 export default function SalonProfile() {
   const { slug } = useParams()
-  const { isAuthenticated, api } = useCustomer()
   const [salon, setSalon] = useState(null)
   const [services, setServices] = useState([])
   const [stylists, setStylists] = useState([])
@@ -464,13 +440,8 @@ export default function SalonProfile() {
     )
   }
 
-  const toggleFavorite = async () => {
-    if (!isAuthenticated) return toast.error('Please login to save favorites')
-    try {
-      const res = await api.post(`/customers/favorites/${salon.id}`)
-      setIsFavorite(res.data.favorited)
-      toast.success(res.data.message)
-    } catch { toast.error('Failed to update favorite') }
+  const toggleFavorite = () => {
+    toast('Favorites coming soon', { icon: '💫' })
   }
 
   const totalPrice = selectedServices.reduce((sum, s) => sum + parseFloat(s.discounted_price || s.price), 0)

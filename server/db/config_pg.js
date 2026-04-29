@@ -1,16 +1,26 @@
-import pg from 'pg'
 import dotenv from 'dotenv'
+import pg from 'pg'
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless'
+import ws from 'ws'
 
 dotenv.config()
 
+// Neon's serverless driver uses WebSockets in Node; pipe in `ws`
+neonConfig.webSocketConstructor = ws
+
+const isNeon = (process.env.DATABASE_URL || '').includes('neon.tech')
+const isProd = process.env.NODE_ENV === 'production'
+
 const pool = process.env.DATABASE_URL
-  ? new pg.Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
-    })
+  ? (isNeon
+      ? new NeonPool({ connectionString: process.env.DATABASE_URL })
+      : new pg.Pool({
+          connectionString: process.env.DATABASE_URL,
+          ssl: isProd ? { rejectUnauthorized: false } : false,
+          max: 20,
+          idleTimeoutMillis: 30000,
+          connectionTimeoutMillis: 5000,
+        }))
   : new pg.Pool({
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || '5432'),
