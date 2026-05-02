@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FiCheck, FiArrowRight, FiPhone, FiCalendar, FiChevronRight } from 'react-icons/fi'
+import { FiCheck, FiArrowRight, FiPhone } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
+import RecentBookingsMenu from '../../components/marketplace/RecentBookingsMenu'
 
 const PHONE = '7249838616'
 const WA_LINK = `https://wa.me/91${PHONE}?text=${encodeURIComponent('Hi! I want to register my salon on Stylo. Please help me set up.')}`
@@ -87,19 +87,6 @@ const anim = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }
 
 export default function Landing() {
   const isSalonOwner = typeof window !== 'undefined' && !!localStorage.getItem('salonOwnerToken')
-  const [recentBookings, setRecentBookings] = useState([])
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('stylo_recent_bookings')
-      if (!raw) return
-      const parsed = JSON.parse(raw)
-      if (!Array.isArray(parsed)) return
-      // Keep only non-expired-looking entries (saved in last 90 days)
-      const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000
-      setRecentBookings(parsed.filter(b => b.saved_at && b.saved_at > cutoff).slice(0, 3))
-    } catch {}
-  }, [])
 
   return (
     <div className="min-h-screen bg-white">
@@ -139,6 +126,7 @@ export default function Landing() {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            <RecentBookingsMenu />
             {isSalonOwner ? (
               <Link to="/salon-owner/dashboard" className="px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
                 Dashboard
@@ -243,35 +231,6 @@ export default function Landing() {
           <a href={`tel:${PHONE}`} className="text-brand-700 font-semibold hover:underline">Call {PHONE}</a>
         </div>
       </section>
-
-      {/* Recent bookings on this device (customer-facing) */}
-      {recentBookings.length > 0 && (
-        <section className="bg-white border-b border-gray-100">
-          <div className="max-w-5xl mx-auto px-4 py-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <FiCalendar className="w-4 h-4 text-brand-600" /> Your recent bookings
-              </h3>
-              <span className="text-xs text-gray-400">on this device</span>
-            </div>
-            <div className="grid sm:grid-cols-3 gap-2">
-              {recentBookings.map(b => (
-                <Link
-                  key={b.code}
-                  to={`/booking/${b.code}`}
-                  className="flex items-center justify-between gap-3 px-4 py-3 bg-gray-50 hover:bg-brand-50 rounded-xl border border-gray-100 hover:border-brand-200 transition"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{b.salon_name}</p>
-                    <p className="text-xs text-gray-500">{b.booking_date} · {b.start_time}</p>
-                  </div>
-                  <FiChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Pain Points */}
       <section className="py-12 sm:py-16 px-4 bg-red-50">

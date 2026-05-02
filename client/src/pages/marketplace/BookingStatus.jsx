@@ -8,6 +8,7 @@ import {
   FiCheck, FiX, FiShare2, FiLink, FiExternalLink, FiAlertCircle,
 } from 'react-icons/fi'
 import { FaWhatsapp, FaFacebook, FaTwitter } from 'react-icons/fa'
+import RecentBookingsMenu from '../../components/marketplace/RecentBookingsMenu'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
 
@@ -235,23 +236,26 @@ export default function BookingStatus() {
             </div>
             <span className="text-base font-bold bg-gradient-to-r from-brand-700 to-accent-600 bg-clip-text text-transparent">Stylo</span>
           </Link>
-          <div className="relative">
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
-              aria-label="Share booking"
-            >
-              <FiShare2 className="w-5 h-5" />
-            </button>
-            <AnimatePresence>
-              {showShareMenu && (
-                <ShareMenu
-                  url={window.location.href}
-                  title={`My appointment at ${booking.salon_name}`}
-                  onClose={() => setShowShareMenu(false)}
-                />
-              )}
-            </AnimatePresence>
+          <div className="flex items-center gap-1">
+            <RecentBookingsMenu />
+            <div className="relative">
+              <button
+                onClick={handleShare}
+                className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+                aria-label="Share booking"
+              >
+                <FiShare2 className="w-5 h-5" />
+              </button>
+              <AnimatePresence>
+                {showShareMenu && (
+                  <ShareMenu
+                    url={window.location.href}
+                    title={`My appointment at ${booking.salon_name}`}
+                    onClose={() => setShowShareMenu(false)}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>
