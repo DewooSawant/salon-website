@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stylo-v2'
+const CACHE_NAME = 'stylo-v3'
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -38,7 +38,6 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET and API calls
   if (request.method !== 'GET') return
   if (request.url.includes('/api/')) return
-  if (request.url.includes('/otp/')) return
 
   event.respondWith(
     fetch(request)

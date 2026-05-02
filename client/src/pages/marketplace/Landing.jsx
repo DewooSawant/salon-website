@@ -124,18 +124,18 @@ export default function Landing() {
             <a href="#contact" className="hover:text-brand-700 transition">Contact</a>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {isSalonOwner ? (
-              <Link to="/salon-owner/dashboard" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
-                My Dashboard
+              <Link to="/salon-owner/dashboard" className="px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
+                Dashboard
               </Link>
             ) : (
               <>
-                <Link to="/salon-owner/login" className="hidden sm:inline-block px-3 py-2 text-gray-700 rounded-xl text-sm font-semibold hover:text-brand-700 transition">
+                <Link to="/salon-owner/login" className="px-3 py-2 text-gray-700 rounded-xl text-sm font-semibold hover:text-brand-700 hover:bg-gray-50 transition">
                   Login
                 </Link>
-                <Link to="/salon-owner/register" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
-                  Register Free
+                <Link to="/salon-owner/register" className="px-3 sm:px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
+                  Register
                 </Link>
               </>
             )}

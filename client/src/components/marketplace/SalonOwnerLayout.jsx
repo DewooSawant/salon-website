@@ -103,11 +103,11 @@ export default function SalonOwnerLayout({ children, title }) {
           <div className="flex items-center gap-1 shrink-0">
             <Link
               to="/"
-              className="p-2 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition hidden sm:inline-flex items-center gap-1"
+              className="p-2 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition inline-flex items-center gap-1"
               title="Go to Stylo home"
             >
               <FiHome className="w-4 h-4" />
-              <span className="text-sm">Home</span>
+              <span className="hidden sm:inline text-sm">Home</span>
             </Link>
             {salonSlug && (
               <a

@@ -60,7 +60,7 @@ export default function InstallPrompt() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
-          className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto"
+          className="fixed bottom-20 sm:bottom-4 left-4 right-4 z-[60] max-w-md mx-auto"
         >
           <div className="bg-white rounded-2xl shadow-float border border-gray-200 p-4 flex items-start gap-3">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-600 to-accent-500 flex items-center justify-center shrink-0">

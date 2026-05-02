@@ -1,13 +1,14 @@
 {
-  "name": "Stylo - Book Salons Near You",
+  "name": "Stylo - Salon Management",
   "short_name": "Stylo",
-  "description": "Find and book the best salons near you. Compare prices, read reviews, and book instantly.",
-  "start_url": "/",
+  "description": "Walk-in billing, analytics, staff pay & online booking for salon owners. Free.",
+  "start_url": "/salon-owner/dashboard",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#7C3AED",
-  "categories": ["lifestyle", "beauty"],
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -25,13 +26,21 @@
   "screenshots": [],
   "shortcuts": [
     {
-      "name": "Find Salons",
-      "url": "/discover",
+      "name": "Walk-in Billing",
+      "short_name": "Billing",
+      "url": "/salon-owner/walkin",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "My Bookings",
-      "url": "/my-bookings",
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "url": "/salon-owner/dashboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Daily Report",
+      "short_name": "Report",
+      "url": "/salon-owner/daily-report",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
