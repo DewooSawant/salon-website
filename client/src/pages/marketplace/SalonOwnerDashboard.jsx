@@ -126,39 +126,23 @@ export default function SalonOwnerDashboard() {
 
   return (
     <SalonOwnerLayout title="Dashboard">
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={FiCalendar} label="Today's Bookings" value={stats.today_bookings || 0} color="bg-brand-500" link="/salon-owner/bookings" />
-        <StatCard icon={FiClock} label="Pending" value={stats.pending_bookings || 0} color="bg-yellow-500" link="/salon-owner/bookings" />
-        <StatCard icon={FiDollarSign} label="Today's Revenue" value={`₹${stats.today_revenue || 0}`} color="bg-green-500" />
-        <StatCard icon={FiStar} label="Rating" value={`${stats.avg_rating || 0} / 5`} color="bg-orange-500" link="/salon-owner/reviews" />
-      </div>
-
-      {/* Quick Walk-in Widget */}
+      {/* QUICK BILL — primary action, lives at the top */}
       {services.length > 0 && (
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 mb-8 overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-200">
-                <FiPlus className="w-5 h-5 text-white" />
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 mb-6 overflow-hidden shadow-sm">
+          {/* Header — larger, more prominent */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-green-200/60 bg-white/40">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 bg-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-200">
+                <FiPlus className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Quick Bill</h2>
-                <p className="text-xs text-gray-500">Tap &rarr; Fill &rarr; Bill</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">Start New Bill</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Tap services &rarr; add customer &rarr; bill in seconds</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              {quickServices.length > 0 && (
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-green-700">₹{quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)}</p>
-                  <p className="text-[10px] text-green-600 font-medium">{quickServices.length} service{quickServices.length > 1 ? 's' : ''}</p>
-                </div>
-              )}
-              <Link to="/salon-owner/walkin" className="text-xs text-green-700 font-semibold hover:text-green-800 bg-white/60 px-3 py-1.5 rounded-lg border border-green-200">
-                Full POS <FiArrowRight className="w-3 h-3 inline" />
-              </Link>
-            </div>
+            <Link to="/salon-owner/walkin" className="hidden sm:inline-flex items-center gap-1 text-xs text-green-700 font-semibold hover:text-green-800 bg-white px-3 py-2 rounded-lg border border-green-200 shrink-0">
+              Full POS <FiArrowRight className="w-3 h-3" />
+            </Link>
           </div>
 
           {quickSuccess ? (() => {
@@ -192,22 +176,33 @@ export default function SalonOwnerDashboard() {
             </div>)
           })() : (
             <div className="px-5 pb-5">
-              {/* Step 1: Services - always visible */}
+              {/* Step 1: Services — larger tap targets */}
               <div className="mb-4">
-                <p className="text-[11px] font-bold text-green-700 uppercase tracking-wider mb-2">1. Select Services</p>
-                <div className="flex flex-wrap gap-1.5">
+                <p className="text-[11px] font-bold text-green-700 uppercase tracking-wider mb-2.5">1. Select Services</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {services.sort((a, b) => (b.is_popular ? 1 : 0) - (a.is_popular ? 1 : 0)).map(svc => {
                     const selected = quickServices.find(s => s.id === svc.id)
+                    const price = svc.discounted_price || svc.price
                     return (
-                      <button key={svc.id}
+                      <button
+                        key={svc.id}
                         onClick={() => setQuickServices(prev => selected ? prev.filter(s => s.id !== svc.id) : [...prev, svc])}
-                        className={`px-3 py-2 rounded-xl text-sm font-medium transition-all ${
+                        className={`relative flex flex-col items-start gap-1 px-3 py-3 rounded-xl text-left transition-all min-h-[76px] ${
                           selected
                             ? 'bg-green-600 text-white shadow-md shadow-green-200 scale-[1.02]'
-                            : 'bg-white text-gray-700 border border-gray-200 hover:border-green-300 hover:bg-green-50'
+                            : 'bg-white text-gray-700 border-2 border-gray-100 hover:border-green-300 hover:bg-green-50'
                         }`}
                       >
-                        {svc.icon} {svc.name} <span className={`text-xs ${selected ? 'text-green-100' : 'text-gray-400'}`}>₹{svc.discounted_price || svc.price}</span>
+                        {selected && (
+                          <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-white text-green-600 rounded-full flex items-center justify-center shadow-sm">
+                            <FiCheck className="w-3 h-3" strokeWidth={3} />
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1.5 text-lg leading-none">
+                          <span>{svc.icon || '✂️'}</span>
+                        </div>
+                        <span className="text-sm font-semibold leading-tight line-clamp-2">{svc.name}</span>
+                        <span className={`text-sm font-bold ${selected ? 'text-green-50' : 'text-green-700'}`}>₹{price}</span>
                       </button>
                     )
                   })}
@@ -240,6 +235,39 @@ export default function SalonOwnerDashboard() {
               {quickServices.length > 0 && (
                 <div>
                   <p className="text-[11px] font-bold text-green-700 uppercase tracking-wider mb-2">{stylists.length > 0 ? '3' : '2'}. Customer & Payment</p>
+
+                  {/* Recent customers today — one-tap quick-pick */}
+                  {(() => {
+                    const seen = new Set()
+                    const recentToday = (dashboard?.recent_bookings || [])
+                      .filter(b => b.customer_name && b.customer_phone && b.customer_phone !== 'walk-in')
+                      .filter(b => {
+                        const key = b.customer_phone
+                        if (seen.has(key)) return false
+                        seen.add(key)
+                        return true
+                      })
+                      .slice(0, 4)
+                    if (recentToday.length === 0) return null
+                    return (
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-2 -mx-0.5 px-0.5">
+                        <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider shrink-0 mr-1">Recent:</span>
+                        {recentToday.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => { setQuickName(c.customer_name); setQuickPhone(c.customer_phone) }}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white border border-gray-200 hover:border-green-400 hover:bg-green-50 transition text-xs font-medium text-gray-700 shrink-0"
+                          >
+                            <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-[10px] font-bold">
+                              {c.customer_name.charAt(0).toUpperCase()}
+                            </span>
+                            <span className="truncate max-w-[100px]">{c.customer_name.split(' ')[0]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )
+                  })()}
+
                   <div className="bg-white rounded-xl border border-gray-200 p-3 shadow-sm" ref={suggestRef}>
                     {/* Row 1: Name + Phone with autocomplete */}
                     <div className="flex gap-2 mb-3 relative">
@@ -321,7 +349,7 @@ export default function SalonOwnerDashboard() {
                           } finally { setQuickBilling(false) }
                         }}
                         disabled={quickBilling}
-                        className="flex-1 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 transition disabled:opacity-50 shadow-md shadow-green-200 whitespace-nowrap"
+                        className="flex-1 py-3.5 bg-green-600 text-white rounded-xl font-bold text-base hover:bg-green-700 transition disabled:opacity-50 shadow-lg shadow-green-200 whitespace-nowrap"
                       >
                         {quickBilling ? (
                           <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -335,8 +363,41 @@ export default function SalonOwnerDashboard() {
               )}
             </div>
           )}
+
+          {/* Sticky total banner — always visible when services are selected */}
+          {!quickSuccess && quickServices.length > 0 && (
+            <div className="bg-white/80 backdrop-blur-sm border-t border-green-200 px-5 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-1">
+                  {quickServices.slice(0, 4).map(s => (
+                    <span key={s.id} className="w-7 h-7 bg-green-100 border-2 border-white rounded-full flex items-center justify-center text-sm">
+                      {s.icon || '✂️'}
+                    </span>
+                  ))}
+                </div>
+                <div>
+                  <p className="text-xs text-green-700 font-medium">{quickServices.length} service{quickServices.length > 1 ? 's' : ''} selected</p>
+                  <p className="text-xl font-bold text-green-700 leading-none mt-0.5">₹{quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setQuickServices([]); setQuickStylist(null) }}
+                className="text-xs text-gray-500 font-medium hover:text-gray-700 underline"
+              >
+                Clear
+              </button>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Stats — secondary, below the primary billing action */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <StatCard icon={FiCalendar} label="Today's Bookings" value={stats.today_bookings || 0} color="bg-brand-500" link="/salon-owner/bookings" />
+        <StatCard icon={FiClock} label="Pending" value={stats.pending_bookings || 0} color="bg-yellow-500" link="/salon-owner/bookings" />
+        <StatCard icon={FiDollarSign} label="Today's Revenue" value={`₹${stats.today_revenue || 0}`} color="bg-green-500" />
+        <StatCard icon={FiStar} label="Rating" value={`${stats.avg_rating || 0} / 5`} color="bg-orange-500" link="/salon-owner/reviews" />
+      </div>
 
       {/* Recent Bookings */}
       <div className="mb-8">
