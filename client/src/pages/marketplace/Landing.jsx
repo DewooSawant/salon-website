@@ -108,28 +108,33 @@ export default function Landing() {
       </div>
 
       {/* Nav */}
-      <nav className="bg-white border-b border-gray-100 sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-accent-500 flex items-center justify-center">
+      <nav className="bg-white/90 backdrop-blur-md border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-accent-500 flex items-center justify-center shadow-md shadow-brand-500/20">
               <span className="text-white text-sm">✂️</span>
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-brand-700 to-accent-600 bg-clip-text text-transparent">Stylo</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-brand-700 to-accent-600 bg-clip-text text-transparent">Stylo</span>
           </Link>
-          <div className="flex items-center gap-2">
-            <a href={`tel:${PHONE}`} className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 font-medium">
-              <FiPhone className="w-4 h-4" /> {PHONE}
-            </a>
+
+          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+            <a href="#features" className="hover:text-brand-700 transition">Features</a>
+            <a href="#pricing" className="hover:text-brand-700 transition">Pricing</a>
+            <a href="#faq" className="hover:text-brand-700 transition">FAQ</a>
+            <a href="#contact" className="hover:text-brand-700 transition">Contact</a>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
             {isSalonOwner ? (
-              <Link to="/salon-owner/dashboard" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold">
+              <Link to="/salon-owner/dashboard" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
                 My Dashboard
               </Link>
             ) : (
               <>
-                <Link to="/salon-owner/login" className="hidden sm:inline-block px-4 py-2 text-brand-700 rounded-xl text-sm font-bold hover:bg-brand-50 transition">
+                <Link to="/salon-owner/login" className="hidden sm:inline-block px-3 py-2 text-gray-700 rounded-xl text-sm font-semibold hover:text-brand-700 transition">
                   Login
                 </Link>
-                <Link to="/salon-owner/register" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold">
+                <Link to="/salon-owner/register" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold hover:bg-brand-700 transition">
                   Register Free
                 </Link>
               </>
@@ -138,36 +143,90 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative bg-gradient-to-br from-brand-600 via-brand-700 to-accent-600 text-white overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-        <div className="relative max-w-5xl mx-auto px-4 pt-12 pb-16 sm:pt-16 sm:pb-20 text-center">
-          <motion.div {...anim} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium mb-6">
-            💈 पुण्यातील सलून मालकांसाठी
-          </motion.div>
-          <motion.h1 {...anim} transition={{ delay: 0.05 }} className="text-3xl sm:text-5xl font-bold mb-4 leading-tight">
-            तुमचा सलून
-            <br />
-            <span className="bg-white/20 px-3 py-1 rounded-xl inline-block mt-2">Stylo</span> वर आणा
-          </motion.h1>
-          <motion.p {...anim} transition={{ delay: 0.1 }} className="text-base sm:text-lg text-white/85 max-w-xl mx-auto mb-8 leading-relaxed">
-            Walk-in billing, customer tracking, staff management, analytics — सगळं एकाच ॲपमध्ये. <strong>मोफत.</strong>
-          </motion.p>
-          <motion.div {...anim} transition={{ delay: 0.15 }} className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              to={isSalonOwner ? '/salon-owner/dashboard' : '/salon-owner/register'}
-              className="w-full sm:w-auto px-8 py-4 bg-white text-brand-700 rounded-2xl text-lg font-bold shadow-xl hover:bg-gray-100 transition text-center"
+      {/* Hero — light bg, screenshot on right */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-brand-50/60 via-white to-white">
+        {/* Decorative glows */}
+        <div className="pointer-events-none absolute -top-24 -right-16 w-96 h-96 bg-brand-200/40 rounded-full blur-3xl" />
+        <div className="pointer-events-none absolute top-40 -left-20 w-80 h-80 bg-accent-200/40 rounded-full blur-3xl" />
+
+        <div className="relative max-w-6xl mx-auto px-4 pt-12 pb-16 sm:pt-20 sm:pb-24">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
+            {/* Left: copy */}
+            <div className="text-center lg:text-left">
+              <motion.div {...anim} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-100/80 border border-brand-200 text-sm font-semibold text-brand-700 mb-6">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                Free for salon owners in Pune
+              </motion.div>
+
+              <motion.h1 {...anim} transition={{ delay: 0.05 }} className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 mb-5 leading-[1.05] tracking-tight">
+                Run your salon.
+                <br />
+                <span className="bg-gradient-to-r from-brand-600 to-accent-500 bg-clip-text text-transparent">Not spreadsheets.</span>
+              </motion.h1>
+
+              <motion.p {...anim} transition={{ delay: 0.1 }} className="text-lg text-gray-600 mb-4 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                Walk-in billing, customer tracking, staff pay, analytics — all in one place. Built for Indian salons.
+              </motion.p>
+              <motion.p {...anim} transition={{ delay: 0.13 }} className="text-base text-gray-500 mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                सगळं एकाच ॲपमध्ये. <strong className="text-gray-700">मोफत.</strong>
+              </motion.p>
+
+              <motion.div {...anim} transition={{ delay: 0.15 }} className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3 mb-5">
+                <Link
+                  to={isSalonOwner ? '/salon-owner/dashboard' : '/salon-owner/register'}
+                  className="w-full sm:w-auto px-7 py-4 bg-brand-600 text-white rounded-xl text-base font-bold shadow-lg shadow-brand-500/30 hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-500/40 transition-all text-center"
+                >
+                  {isSalonOwner ? 'Go to My Dashboard' : 'Register Free'} <FiArrowRight className="inline w-4 h-4 ml-1.5" />
+                </Link>
+                <a
+                  href={WA_LINK}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full sm:w-auto px-6 py-4 bg-white text-gray-700 border border-gray-200 rounded-xl text-base font-semibold hover:border-green-400 hover:text-green-600 transition flex items-center justify-center gap-2"
+                >
+                  <FaWhatsapp className="w-5 h-5 text-green-500" /> WhatsApp Us
+                </a>
+              </motion.div>
+
+              <motion.p {...anim} transition={{ delay: 0.2 }} className="text-sm text-gray-500">
+                No credit card needed • Setup in 2 minutes • Works on mobile
+              </motion.p>
+            </div>
+
+            {/* Right: product screenshot */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="relative mx-auto w-full max-w-lg lg:max-w-none"
             >
-              {isSalonOwner ? 'Go to My Dashboard' : 'Register Your Salon Free'} <FiArrowRight className="inline w-5 h-5 ml-1" />
-            </Link>
-            <a href={WA_LINK} target="_blank" rel="noreferrer" className="w-full sm:w-auto px-8 py-4 bg-green-500 text-white rounded-2xl text-lg font-bold shadow-xl hover:bg-green-600 transition flex items-center justify-center gap-2">
-              <FaWhatsapp className="w-5 h-5" /> WhatsApp Us
-            </a>
-          </motion.div>
-          <motion.p {...anim} transition={{ delay: 0.2 }} className="text-sm text-white/60 mt-4">
-            No credit card needed • Setup in 2 minutes • Works on mobile
-          </motion.p>
+              <div className="absolute -inset-6 bg-gradient-to-br from-brand-400/20 via-accent-400/20 to-brand-400/20 rounded-3xl blur-2xl" />
+              <div className="relative bg-gradient-to-br from-brand-600 to-accent-500 rounded-2xl p-2 shadow-2xl shadow-brand-500/20">
+                <div className="bg-gray-900 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-800">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                    <span className="text-[10px] text-gray-500 ml-2">stylo.sbs/salon-owner/dashboard</span>
+                  </div>
+                  <img src="/screenshots/dashboard.png" alt="Stylo dashboard preview" className="w-full" loading="eager" />
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trust strip */}
+      <section className="border-y border-gray-100 bg-gray-50/60">
+        <div className="max-w-5xl mx-auto px-4 py-5 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-gray-500">
+          <span className="font-semibold text-gray-700">💈 Made for salons in Pune</span>
+          <span className="hidden sm:inline">•</span>
+          <span>Walk-in billing in 5 seconds</span>
+          <span className="hidden sm:inline">•</span>
+          <span>Works fully on mobile</span>
+          <span className="hidden sm:inline">•</span>
+          <a href={`tel:${PHONE}`} className="text-brand-700 font-semibold hover:underline">Call {PHONE}</a>
         </div>
       </section>
 
@@ -195,7 +254,7 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section className="py-12 sm:py-16 px-4">
+      <section id="features" className="py-12 sm:py-16 px-4 scroll-mt-16">
         <div className="max-w-5xl mx-auto">
           <motion.div {...anim} className="text-center mb-12">
             <span className="inline-block px-4 py-1.5 rounded-full bg-brand-50 text-brand-600 text-sm font-bold mb-3">
@@ -251,7 +310,7 @@ export default function Landing() {
       </section>
 
       {/* Pricing */}
-      <section className="py-12 sm:py-16 px-4 bg-brand-50">
+      <section id="pricing" className="py-12 sm:py-16 px-4 bg-brand-50 scroll-mt-16">
         <div className="max-w-4xl mx-auto">
           <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-2">
             किंमत किती? / Pricing
@@ -358,7 +417,7 @@ export default function Landing() {
       </section>
 
       {/* FAQ */}
-      <section className="py-12 sm:py-16 px-4">
+      <section id="faq" className="py-12 sm:py-16 px-4 scroll-mt-16">
         <div className="max-w-3xl mx-auto">
           <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8">
             सामान्य प्रश्न
@@ -379,8 +438,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-12 sm:py-16 px-4 bg-gradient-to-br from-brand-600 to-accent-500 text-white">
+      {/* Final CTA / Contact */}
+      <section id="contact" className="py-12 sm:py-16 px-4 bg-gradient-to-br from-brand-600 to-accent-500 text-white scroll-mt-16">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-3">आजच सुरू करा — मोफत!</h2>
           <p className="text-white/80 mb-8 max-w-md mx-auto">Register करा, services ॲड करा, आणि walk-in billing सुरू करा. आम्ही तुम्हाला सेटअप करायला मदत करू.</p>

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FiGrid, FiScissors, FiUsers, FiCalendar, FiStar, FiSettings, FiLogOut, FiArrowLeft, FiMenu, FiX, FiDollarSign, FiBarChart2, FiUserCheck, FiCreditCard, FiTrendingUp, FiExternalLink } from 'react-icons/fi'
+import { FiGrid, FiScissors, FiUsers, FiCalendar, FiStar, FiSettings, FiLogOut, FiArrowLeft, FiMenu, FiX, FiDollarSign, FiBarChart2, FiUserCheck, FiCreditCard, FiTrendingUp, FiExternalLink, FiHome } from 'react-icons/fi'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
@@ -74,19 +74,41 @@ export default function SalonOwnerLayout({ children, title }) {
     <div className="min-h-screen bg-gray-50">
       {/* Top Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100"
+              className="md:hidden p-2 -ml-2 rounded-lg hover:bg-gray-100 shrink-0"
             >
               {mobileOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
             </button>
-            <Link to="/salon-owner/dashboard" className="text-lg font-bold bg-gradient-to-r from-brand-600 to-accent-500 bg-clip-text text-transparent">
+            {/* Stylo logo → home */}
+            <Link to="/" className="flex items-center gap-1.5 shrink-0" title="Stylo home">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-accent-500 flex items-center justify-center">
+                <span className="text-white text-sm">✂️</span>
+              </div>
+              <span className="hidden sm:inline text-base font-bold bg-gradient-to-r from-brand-700 to-accent-600 bg-clip-text text-transparent">Stylo</span>
+            </Link>
+            {/* Divider */}
+            <span className="hidden sm:inline text-gray-300">/</span>
+            {/* Salon name → dashboard */}
+            <Link
+              to="/salon-owner/dashboard"
+              className="text-sm sm:text-base font-semibold text-gray-800 hover:text-brand-700 transition truncate"
+              title="Back to dashboard"
+            >
               {salonName || 'My Salon'}
             </Link>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0">
+            <Link
+              to="/"
+              className="p-2 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition hidden sm:inline-flex items-center gap-1"
+              title="Go to Stylo home"
+            >
+              <FiHome className="w-4 h-4" />
+              <span className="text-sm">Home</span>
+            </Link>
             {salonSlug && (
               <a
                 href={`/salon/${salonSlug}`}
