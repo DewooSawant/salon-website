@@ -57,8 +57,8 @@ CREATE TABLE IF NOT EXISTS salons (
     city VARCHAR(100) NOT NULL,
     state VARCHAR(100),
     pincode VARCHAR(10),
-    latitude DOUBLE PRECISION NOT NULL DEFAULT 0,
-    longitude DOUBLE PRECISION NOT NULL DEFAULT 0,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     phone VARCHAR(20) NOT NULL,
     whatsapp VARCHAR(20),
     email VARCHAR(255),
@@ -397,6 +397,15 @@ BEGIN
         EXECUTE format('CREATE TRIGGER trg_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION update_updated_at()', t);
     END LOOP;
 END $$;
+
+-- =====================================================
+-- MIGRATIONS for existing databases
+-- Make lat/lng optional: owners can register without coordinates and set them later
+-- =====================================================
+ALTER TABLE salons ALTER COLUMN latitude DROP NOT NULL;
+ALTER TABLE salons ALTER COLUMN longitude DROP NOT NULL;
+ALTER TABLE salons ALTER COLUMN latitude DROP DEFAULT;
+ALTER TABLE salons ALTER COLUMN longitude DROP DEFAULT;
 
 -- =====================================================
 -- SAMPLE DATA (using plain lat/lng)

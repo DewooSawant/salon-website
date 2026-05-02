@@ -26,8 +26,8 @@ router.post('/register', async (req, res) => {
   try {
     const { owner_name, phone, password, salon_name, address, city, state, pincode, latitude, longitude, salon_phone, whatsapp, type, opening_time, closing_time, working_days } = req.body
 
-    if (!owner_name || !phone || !password || !salon_name || !address || !city || !latitude || !longitude) {
-      return res.status(400).json({ error: 'Required: owner_name, phone, password, salon_name, address, city, latitude, longitude' })
+    if (!owner_name || !phone || !password || !salon_name || !address || !city) {
+      return res.status(400).json({ error: 'Required: owner_name, phone, password, salon_name, address, city' })
     }
 
     const cleanPhone = String(phone).replace(/\D/g, '').slice(-10)
@@ -44,6 +44,9 @@ router.post('/register', async (req, res) => {
     const [slugCheck] = await db.query('SELECT id FROM salons WHERE slug = $1', [slug])
     if (slugCheck.length > 0) slug = `${slug}-${Date.now()}`
 
+    const latNum = latitude ? parseFloat(latitude) : null
+    const lngNum = longitude ? parseFloat(longitude) : null
+
     const client = await pool.connect()
     try {
       await client.query('BEGIN')
@@ -51,7 +54,7 @@ router.post('/register', async (req, res) => {
       const { rows: [salon] } = await client.query(
         `INSERT INTO salons (name, slug, address, city, state, pincode, latitude, longitude, phone, whatsapp, type, opening_time, closing_time, working_days)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
-        [salon_name, slug, address, city, state || null, pincode || null, parseFloat(latitude), parseFloat(longitude),
+        [salon_name, slug, address, city, state || null, pincode || null, latNum, lngNum,
          salon_phone || cleanPhone, whatsapp || null, type || 'unisex', opening_time || '10:00:00', closing_time || '21:00:00',
          JSON.stringify(working_days || ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])]
       )

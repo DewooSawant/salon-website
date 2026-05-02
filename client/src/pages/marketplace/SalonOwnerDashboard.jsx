@@ -124,8 +124,54 @@ export default function SalonOwnerDashboard() {
 
   const stats = dashboard?.stats || {}
 
+  // Profile-completion detection — prompt to finish setup if signup was minimal
+  const missing = []
+  if (salon && (!salon.latitude || !salon.longitude)) missing.push('location on map')
+  if (salon && services.length === 0) missing.push('services')
+  if (salon && stylists.length === 0) missing.push('staff')
+  const hideProfileCard = typeof window !== 'undefined' && localStorage.getItem('profileCardDismissed') === '1'
+
   return (
     <SalonOwnerLayout title="Dashboard">
+      {/* Profile completion prompt — shows until location/services/staff are filled */}
+      {missing.length > 0 && !hideProfileCard && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 mb-4 flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+            <FiStar className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-900">Finish setting up your salon</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Still need to add: <span className="font-semibold">{missing.join(', ')}</span>. Takes 2 minutes.
+            </p>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              {salon && (!salon.latitude || !salon.longitude) && (
+                <Link to="/salon-owner/settings" className="text-xs font-semibold text-amber-800 bg-white px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100 transition">
+                  Add location →
+                </Link>
+              )}
+              {salon && services.length === 0 && (
+                <Link to="/salon-owner/services" className="text-xs font-semibold text-amber-800 bg-white px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100 transition">
+                  Add services →
+                </Link>
+              )}
+              {salon && stylists.length === 0 && (
+                <Link to="/salon-owner/stylists" className="text-xs font-semibold text-amber-800 bg-white px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100 transition">
+                  Add staff →
+                </Link>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => { localStorage.setItem('profileCardDismissed', '1'); fetchData() }}
+            className="text-amber-600 hover:text-amber-800 p-1 shrink-0"
+            title="Dismiss"
+          >
+            <FiCheck className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* QUICK BILL — primary action, lives at the top */}
       {services.length > 0 && (
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200 mb-6 overflow-hidden shadow-sm">
