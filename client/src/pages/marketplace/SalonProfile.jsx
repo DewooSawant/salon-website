@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FiStar, FiMapPin, FiPhone, FiClock, FiChevronDown, FiHeart,
   FiArrowLeft, FiCheck, FiCalendar, FiUser, FiX, FiShield,
-  FiWifi, FiCheckCircle, FiNavigation, FiShare2
+  FiWifi, FiCheckCircle, FiNavigation, FiShare2, FiCopy, FiLink
 } from 'react-icons/fi'
-import { FaWhatsapp } from 'react-icons/fa'
+import { FaWhatsapp, FaFacebook, FaTwitter } from 'react-icons/fa'
 import MarketplaceNavbar from '../../components/marketplace/MarketplaceNavbar'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -31,6 +31,101 @@ const formatTimeDisplay = (time) => {
   const ampm = hour >= 12 ? 'PM' : 'AM'
   const hour12 = hour % 12 || 12
   return `${hour12}:${minutes} ${ampm}`
+}
+
+function ShareMenu({ salon, onClose }) {
+  const ref = useRef(null)
+  const url = typeof window !== 'undefined' ? window.location.href : ''
+  const title = salon?.name ? `Book at ${salon.name}` : 'Book your appointment'
+  const text = salon?.name
+    ? `Book your appointment at ${salon.name}.\nView services & timings:`
+    : 'Check out this salon on Stylo:'
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
+  }, [onClose])
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied to clipboard')
+    } catch {
+      // Fallback for browsers without clipboard API
+      const ta = document.createElement('textarea')
+      ta.value = url
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy'); toast.success('Link copied') }
+      catch { toast.error('Could not copy — please copy the URL from the address bar') }
+      document.body.removeChild(ta)
+    }
+    onClose()
+  }
+
+  const waText = encodeURIComponent(`${text} ${url}`)
+  const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+      transition={{ duration: 0.15 }}
+      className="absolute top-14 right-0 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 z-50 text-gray-800"
+    >
+      <p className="text-xs text-gray-400 px-3 pt-1 pb-2">Share this salon</p>
+      <a
+        href={`https://wa.me/?text=${waText}`}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onClose}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-green-50 transition"
+      >
+        <FaWhatsapp className="w-5 h-5 text-green-500" />
+        <span className="text-sm font-medium">WhatsApp</span>
+      </a>
+      <a
+        href={fbUrl}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onClose}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-blue-50 transition"
+      >
+        <FaFacebook className="w-5 h-5 text-blue-600" />
+        <span className="text-sm font-medium">Facebook</span>
+      </a>
+      <a
+        href={xUrl}
+        target="_blank"
+        rel="noreferrer"
+        onClick={onClose}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100 transition"
+      >
+        <FaTwitter className="w-5 h-5 text-gray-800" />
+        <span className="text-sm font-medium">X (Twitter)</span>
+      </a>
+      <div className="border-t border-gray-100 my-1" />
+      <button
+        onClick={copyLink}
+        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-100 transition"
+      >
+        <FiLink className="w-5 h-5 text-gray-600" />
+        <span className="text-sm font-medium">Copy link</span>
+      </button>
+    </motion.div>
+  )
 }
 
 function ServiceItem({ service, selected, onToggle }) {
@@ -412,6 +507,7 @@ export default function SalonProfile() {
   const [showBooking, setShowBooking] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
   const [activeTab, setActiveTab] = useState('services')
+  const [showShareMenu, setShowShareMenu] = useState(false)
 
   useEffect(() => {
     fetchSalon()
@@ -442,6 +538,29 @@ export default function SalonProfile() {
 
   const toggleFavorite = () => {
     toast('Favorites coming soon', { icon: '💫' })
+  }
+
+  const handleShare = async () => {
+    const url = window.location.href
+    const title = salon?.name ? `Book at ${salon.name}` : 'Book your appointment'
+    const text = salon?.name
+      ? `Book your appointment at ${salon.name}.\nView services & timings:`
+      : 'Check out this salon on Stylo:'
+
+    // Prefer the native share sheet when available (mobile / Safari / Edge)
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url })
+        return
+      } catch (err) {
+        // User cancelled — don't show fallback, don't toast error
+        if (err?.name === 'AbortError') return
+        // Any other failure falls through to the custom menu
+      }
+    }
+
+    // Desktop fallback: show the custom share menu
+    setShowShareMenu(true)
   }
 
   const totalPrice = selectedServices.reduce((sum, s) => sum + parseFloat(s.discounted_price || s.price), 0)
@@ -504,12 +623,24 @@ export default function SalonProfile() {
             <button
               onClick={toggleFavorite}
               className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition"
+              aria-label="Save to favorites"
             >
               <FiHeart className={`w-5 h-5 ${isFavorite ? 'fill-red-400 text-red-400' : 'text-white'}`} />
             </button>
-            <button className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition">
-              <FiShare2 className="w-5 h-5 text-white" />
-            </button>
+            <div className="relative">
+              <button
+                onClick={handleShare}
+                className="p-2.5 rounded-xl bg-white/10 backdrop-blur-sm hover:bg-white/20 transition"
+                aria-label="Share this salon"
+              >
+                <FiShare2 className="w-5 h-5 text-white" />
+              </button>
+              <AnimatePresence>
+                {showShareMenu && (
+                  <ShareMenu salon={salon} onClose={() => setShowShareMenu(false)} />
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
