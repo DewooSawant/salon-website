@@ -238,6 +238,23 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
         services: selectedServices.map(s => s.id),
       })
       setResult(res.data)
+
+      // Stash for "My recent bookings on this device" list
+      try {
+        const entry = {
+          code: res.data.booking.booking_code,
+          salon_name: salon.name,
+          salon_slug: slug,
+          booking_date: date,
+          start_time: time,
+          total_price: res.data.booking.total_price,
+          saved_at: Date.now(),
+        }
+        const prev = JSON.parse(localStorage.getItem('stylo_recent_bookings') || '[]')
+        const deduped = prev.filter(b => b.code !== entry.code)
+        localStorage.setItem('stylo_recent_bookings', JSON.stringify([entry, ...deduped].slice(0, 5)))
+      } catch {}
+
       setStep(totalSteps + 1) // Go to success step
       toast.success('Booking confirmed!')
     } catch (error) {
@@ -457,37 +474,77 @@ function BookingModal({ show, onClose, salon, selectedServices, stylists, totalP
             )}
 
             {/* Success Step */}
-            {step > totalSteps && result && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-6"
-              >
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <FiCheck className="w-10 h-10 text-green-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">You're all set!</h3>
-                <p className="text-gray-500 mb-6">Your appointment has been booked successfully.</p>
+            {step > totalSteps && result && (() => {
+              const bookingUrl = `${window.location.origin}/booking/${result.booking.booking_code}`
+              const saveMsg = encodeURIComponent(
+                `My appointment at ${salon.name}\nDate: ${date}, Time: ${formatTimeDisplay(time)}\nCode: ${result.booking.booking_code}\nView/manage: ${bookingUrl}`
+              )
+              const copyUrl = async () => {
+                try { await navigator.clipboard.writeText(bookingUrl); toast.success('Link copied') }
+                catch { toast.error('Could not copy — select the link manually') }
+              }
+              return (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-4"
+                >
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FiCheck className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">You're all set!</h3>
+                  <p className="text-gray-500 text-sm mb-5">Save your booking so you can find it later.</p>
 
-                <div className="bg-gray-50 rounded-2xl p-5 mb-6 border border-gray-100">
-                  <p className="text-sm text-gray-500 mb-1">Booking Code</p>
-                  <p className="text-3xl font-bold text-brand-600 font-mono">{result.booking.booking_code}</p>
-                </div>
+                  <div className="bg-brand-50 rounded-2xl p-4 mb-4 border border-brand-100">
+                    <p className="text-xs text-brand-700 font-semibold uppercase tracking-wider mb-1">Booking Code</p>
+                    <p className="text-2xl font-bold text-brand-700 font-mono tracking-wider">{result.booking.booking_code}</p>
+                  </div>
 
-                {result.notifications?.customerWhatsAppLink && (
+                  {/* Shareable link */}
+                  <div className="bg-gray-50 rounded-xl p-3 mb-4 border border-gray-100 flex items-center gap-2">
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">Your booking link</p>
+                      <p className="text-xs text-gray-700 truncate font-mono">{bookingUrl}</p>
+                    </div>
+                    <button
+                      onClick={copyUrl}
+                      className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-100 shrink-0"
+                    >
+                      Copy
+                    </button>
+                  </div>
+
                   <a
-                    href={result.notifications.customerWhatsAppLink}
+                    href={`https://wa.me/?text=${saveMsg}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition mb-4 shadow-md"
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl font-semibold hover:bg-green-600 transition mb-2 shadow-md"
                   >
-                    <FaWhatsapp className="w-5 h-5" /> Get Confirmation on WhatsApp
+                    <FaWhatsapp className="w-5 h-5" /> Save to my WhatsApp
                   </a>
-                )}
 
-                <p className="text-sm text-gray-400">Please arrive 5-10 minutes before your appointment.</p>
-              </motion.div>
-            )}
+                  <Link
+                    to={`/booking/${result.booking.booking_code}`}
+                    className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition mb-4"
+                  >
+                    View Booking Details
+                  </Link>
+
+                  {result.notifications?.ownerWhatsAppLink && (
+                    <a
+                      href={result.notifications.ownerWhatsAppLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-gray-400 hover:text-gray-600 underline"
+                    >
+                      Notify the salon on WhatsApp
+                    </a>
+                  )}
+
+                  <p className="text-xs text-gray-400 mt-4">Please arrive 5-10 minutes before your appointment.</p>
+                </motion.div>
+              )
+            })()}
           </div>
         </motion.div>
       </motion.div>

@@ -8,6 +8,7 @@ import { CustomerProvider } from './context/CustomerContext'
 // Marketplace Pages
 import Landing from './pages/marketplace/Landing'
 import SalonProfile from './pages/marketplace/SalonProfile'
+import BookingStatus from './pages/marketplace/BookingStatus'
 import SalonOwnerRegister from './pages/marketplace/SalonOwnerRegister'
 import SalonOwnerLogin from './pages/marketplace/SalonOwnerLogin'
 import SalonOwnerDashboard from './pages/marketplace/SalonOwnerDashboard'
@@ -94,6 +95,7 @@ function AppRoutes() {
       {/* ========== PUBLIC ========== */}
       <Route path="/" element={<Landing />} />
       <Route path="/salon/:slug" element={<SalonProfile />} />
+      <Route path="/booking/:code" element={<BookingStatus />} />
 
       {/* Redirects for removed marketplace/for-salon-owners pages */}
       <Route path="/discover" element={<Navigate to="/" replace />} />

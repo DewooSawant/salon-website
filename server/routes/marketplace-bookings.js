@@ -176,7 +176,9 @@ router.get('/track/:code', async (req, res) => {
   try {
     const [bookings] = await db.query(`
       SELECT b.*, s.name as salon_name, s.address as salon_address,
-             s.phone as salon_phone, s.slug as salon_slug, st.name as stylist_name
+             s.phone as salon_phone, s.slug as salon_slug, s.whatsapp as salon_whatsapp,
+             s.latitude as salon_latitude, s.longitude as salon_longitude,
+             st.name as stylist_name
       FROM bookings b JOIN salons s ON s.id = b.salon_id
       LEFT JOIN stylists st ON st.id = b.stylist_id
       WHERE b.booking_code = $1`, [req.params.code]
@@ -190,6 +192,32 @@ router.get('/track/:code', async (req, res) => {
     res.json({ booking })
   } catch (error) {
     res.status(500).json({ error: 'Failed to track booking' })
+  }
+})
+
+// PATCH /api/marketplace/bookings/track/:code/cancel
+// No-auth cancellation: the booking code itself is the "password".
+// Codes are 8-char alphanumeric (36^8 ≈ 2.8T combos) so guessing is impractical.
+router.patch('/track/:code/cancel', async (req, res) => {
+  try {
+    const { reason } = req.body || {}
+    const [rows] = await db.query(
+      'SELECT id, status FROM bookings WHERE booking_code = $1',
+      [req.params.code]
+    )
+    if (rows.length === 0) return res.status(404).json({ error: 'Booking not found' })
+    const { id, status } = rows[0]
+    if (['completed', 'cancelled', 'no_show'].includes(status)) {
+      return res.status(400).json({ error: `Cannot cancel a ${status} booking` })
+    }
+    await db.query(
+      'UPDATE bookings SET status = $1, cancellation_reason = $2 WHERE id = $3',
+      ['cancelled', (reason || '').slice(0, 500) || null, id]
+    )
+    res.json({ message: 'Booking cancelled' })
+  } catch (error) {
+    console.error('Cancel error:', error)
+    res.status(500).json({ error: 'Failed to cancel booking' })
   }
 })
 
