@@ -50,12 +50,17 @@ export default function SalonOwnerLayout({ children, title }) {
   const location = useLocation()
   const navigate = useNavigate()
   const [salonName, setSalonName] = useState('')
+  const [salonSlug, setSalonSlug] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     const info = localStorage.getItem('salonInfo')
     if (info) {
-      try { setSalonName(JSON.parse(info).name) } catch {}
+      try {
+        const parsed = JSON.parse(info)
+        setSalonName(parsed.name || '')
+        setSalonSlug(parsed.slug || '')
+      } catch {}
     }
   }, [])
 
@@ -82,10 +87,18 @@ export default function SalonOwnerLayout({ children, title }) {
             </Link>
           </div>
           <div className="flex items-center gap-1.5">
-            <Link to="/discover" className="p-2 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition" title="Marketplace">
-              <FiExternalLink className="w-4 h-4 sm:hidden" />
-              <span className="hidden sm:inline text-sm px-1">Marketplace</span>
-            </Link>
+            {salonSlug && (
+              <a
+                href={`/salon/${salonSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-lg text-gray-500 hover:text-brand-600 hover:bg-brand-50 transition inline-flex items-center gap-1"
+                title="View my public salon page"
+              >
+                <FiExternalLink className="w-4 h-4" />
+                <span className="hidden sm:inline text-sm">View My Page</span>
+              </a>
+            )}
             <button onClick={logout} className="p-2 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition" title="Logout">
               <FiLogOut className="w-4 h-4" />
             </button>

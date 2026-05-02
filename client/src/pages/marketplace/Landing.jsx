@@ -1,497 +1,327 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import {
-  FiMapPin, FiCalendar, FiStar, FiArrowRight, FiScissors, FiUsers,
-  FiTrendingUp, FiSearch, FiClock, FiShield, FiCheckCircle, FiHeart,
-  FiZap, FiAward, FiSmile
-} from 'react-icons/fi'
-import MarketplaceNavbar from '../../components/marketplace/MarketplaceNavbar'
-import axios from 'axios'
+import { FiCheck, FiArrowRight, FiPhone } from 'react-icons/fi'
+import { FaWhatsapp } from 'react-icons/fa'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const PHONE = '7249838616'
+const WA_LINK = `https://wa.me/91${PHONE}?text=${encodeURIComponent('Hi! I want to register my salon on Stylo. Please help me set up.')}`
 
-const popularCategories = [
-  { name: 'Haircut', icon: '✂️', color: 'from-purple-500 to-purple-600', query: 'haircut' },
-  { name: 'Beard', icon: '🧔', color: 'from-amber-500 to-orange-500', query: 'beard' },
-  { name: 'Hair Color', icon: '🎨', color: 'from-pink-500 to-rose-500', query: 'color' },
-  { name: 'Facial', icon: '✨', color: 'from-emerald-500 to-teal-500', query: 'facial' },
-  { name: 'Hair Spa', icon: '💆', color: 'from-blue-500 to-indigo-500', query: 'spa' },
-  { name: 'Massage', icon: '🧴', color: 'from-violet-500 to-purple-500', query: 'massage' },
+const painPoints = [
+  { emoji: '📝', title: 'कागदावर बिल लिहिताय?', titleEn: 'Writing bills on paper?', desc: 'No records, no history, no tracking' },
+  { emoji: '😰', title: 'कस्टमर परत येत नाहीत?', titleEn: 'Customers not returning?', desc: 'No reminders, no follow-up' },
+  { emoji: '🤷', title: 'किती कमाई झाली माहीत नाही?', titleEn: "Don't know today's revenue?", desc: 'No daily report, no analytics' },
+  { emoji: '💸', title: 'स्टाफचा हिशोब लागत नाही?', titleEn: "Can't track staff earnings?", desc: 'No commission tracking, no salary slips' },
 ]
 
-const stats = [
-  { value: '500+', label: 'Salons Listed', icon: FiScissors },
-  { value: '10K+', label: 'Happy Customers', icon: FiSmile },
-  { value: '50K+', label: 'Bookings Made', icon: FiCalendar },
-  { value: '4.8', label: 'Avg Rating', icon: FiStar },
-]
-
-const howItWorks = [
+const features = [
   {
-    step: 1,
-    icon: FiSearch,
-    title: 'Discover',
-    desc: 'Search salons near you. Filter by type, rating, price, and services.',
-    color: 'bg-brand-100 text-brand-600',
+    emoji: '💰', title: 'Walk-in Billing',
+    titleMr: '३ टॅपमध्ये बिल',
+    desc: 'Customer came? Tap services, name, bill. Done in 5 seconds. Cash, UPI, Card - all tracked.',
+    descMr: 'कस्टमर आला? सर्व्हिस टॅप करा, नाव टाका, बिल तयार. ५ सेकंदात. कॅश, UPI, कार्ड - सगळं ट्रॅक.',
+    color: 'from-green-500 to-emerald-600',
+    screenshot: '/screenshots/dashboard.png',
+    highlights: ['Auto-suggests returning customers', 'WhatsApp receipt in 1 tap', 'Stylist tracking per bill'],
   },
   {
-    step: 2,
-    icon: FiCalendar,
-    title: 'Book Instantly',
-    desc: 'Pick your services, choose a time slot, and confirm in seconds.',
-    color: 'bg-accent-100 text-accent-600',
+    emoji: '📊', title: 'Analytics & Reports',
+    titleMr: 'रेव्हेन्यू रिपोर्ट',
+    desc: 'Daily, weekly, monthly revenue. Top services, peak hours, payment breakdown. Know your business inside out.',
+    descMr: 'दररोज, आठवडा, महिन्याचा रेव्हेन्यू. टॉप सर्व्हिसेस, पीक अवर्स, पेमेंट ब्रेकडाउन.',
+    color: 'from-purple-500 to-violet-600',
+    screenshot: '/screenshots/analytics.png',
+    highlights: ['Revenue graphs', 'Stylist performance', 'Walk-in vs Online split'],
   },
   {
-    step: 3,
-    icon: FiStar,
-    title: 'Enjoy & Review',
-    desc: 'Visit the salon, enjoy premium service, and leave your feedback.',
-    color: 'bg-amber-100 text-amber-600',
+    emoji: '📋', title: 'Daily Register',
+    titleMr: 'डेली रजिस्टर',
+    desc: 'Complete daily report — revenue, bookings, payment breakdown, popular services, stylist performance, insights.',
+    descMr: 'संपूर्ण दैनिक रिपोर्ट — रेव्हेन्यू, बुकिंग्स, पेमेंट, पॉप्युलर सर्व्हिसेस, स्टायलिस्ट परफॉर्मन्स.',
+    color: 'from-blue-500 to-indigo-600',
+    screenshot: '/screenshots/daily-register.png',
+    highlights: ['Payment breakdown (Cash/UPI/Card)', 'Popular services ranking', 'Avg bill value & peak hours'],
   },
-]
-
-const trustSignals = [
-  { icon: FiShield, text: 'Verified Salons' },
-  { icon: FiCheckCircle, text: 'Real Reviews' },
-  { icon: FiZap, text: 'Instant Booking' },
-  { icon: FiClock, text: 'No Waiting' },
+  {
+    emoji: '✂️', title: 'Service Management',
+    titleMr: 'सर्व्हिस मॅनेजमेंट',
+    desc: 'Add all your services with prices, duration, categories. Mark popular services. Manage everything easily.',
+    descMr: 'तुमच्या सगळ्या सर्व्हिसेस किमती, वेळ, कॅटेगरीसह ॲड करा. पॉप्युलर मार्क करा.',
+    color: 'from-amber-500 to-orange-600',
+    screenshot: '/screenshots/services.png',
+    highlights: ['Categories (Haircut, Beard, Facial...)', 'Discounted pricing', 'Duration tracking'],
+  },
+  {
+    emoji: '📅', title: 'Online Booking',
+    titleMr: 'ऑनलाइन बुकिंग',
+    desc: 'Your own salon page. Customers book 24/7. You get instant notification. No more missed calls.',
+    descMr: 'तुमचं स्वतःचं सलून पेज. कस्टमर २४/७ बुक करतात. तुम्हाला लगेच नोटिफिकेशन.',
+    color: 'from-pink-500 to-rose-600',
+    screenshot: '/screenshots/quick-billing.png',
+    highlights: ['Your salon page (stylo.sbs/your-salon)', 'Instant notification', 'Auto-confirm bookings'],
+  },
+  {
+    emoji: '💪', title: 'Staff Pay',
+    titleMr: 'स्टाफ पगार व्यवस्थापन',
+    desc: 'Set salary, commission %. Auto-calculate monthly pay. Generate salary slips. Track per stylist revenue.',
+    descMr: 'पगार, कमिशन % सेट करा. मासिक पे ऑटो कॅल्क्युलेट. सॅलरी स्लिप बनवा.',
+    color: 'from-amber-500 to-orange-600',
+    screenshot: '/screenshots/staff-pay.png',
+    highlights: ['Salary + Commission tracking', 'Monthly payment records', 'Printable salary slips'],
+  },
 ]
 
 const testimonials = [
-  {
-    name: 'Aniket P.',
-    text: 'Found the perfect salon near my home. Booking was seamless!',
-    rating: 5,
-    avatar: 'A',
-  },
-  {
-    name: 'Sneha K.',
-    text: 'Love how I can compare prices and read reviews before booking.',
-    rating: 5,
-    avatar: 'S',
-  },
-  {
-    name: 'Rahul J.',
-    text: 'No more waiting in queues. I book my slot and walk in on time.',
-    rating: 5,
-    avatar: 'R',
-  },
+  { name: 'Bhakti Sawant', salon: 'Bhakti Salon, Pune', text: 'Walk-in billing saved me so much time. Earlier I was writing everything on paper. Now I track revenue, customers, staff — everything on Stylo.', avatar: 'भ' },
+  { name: 'Fredo', salon: 'Fredo Salon, Pune', text: 'My repeat customers increased after I started sending WhatsApp receipts. Customers feel professional service.', avatar: 'F' },
 ]
 
-function FeaturedSalonCard({ salon }) {
-  return (
-    <Link
-      to={`/salon/${salon.slug}`}
-      className="group flex-shrink-0 w-72 bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-brand-200"
-    >
-      <div className="relative h-40 bg-gradient-to-br from-brand-600 to-accent-500 overflow-hidden">
-        {salon.cover_image_url && (
-          <img src={salon.cover_image_url} alt={salon.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <div className="absolute top-3 left-3 flex gap-2">
-          <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/90 text-gray-800 capitalize backdrop-blur-sm">
-            {salon.type}
-          </span>
-          {salon.is_verified && (
-            <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-green-500/90 text-white backdrop-blur-sm flex items-center gap-1">
-              <FiCheckCircle className="w-3 h-3" /> Verified
-            </span>
-          )}
-        </div>
-        {salon.avg_rating && (
-          <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 rounded-lg bg-white/95 backdrop-blur-sm">
-            <FiStar className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-            <span className="text-sm font-bold text-gray-800">{salon.avg_rating}</span>
-          </div>
-        )}
-      </div>
-      <div className="p-4">
-        <h3 className="font-bold text-gray-900 group-hover:text-brand-600 transition-colors mb-1">{salon.name}</h3>
-        {salon.tagline && <p className="text-sm text-gray-500 mb-2 line-clamp-1">{salon.tagline}</p>}
-        <div className="flex items-center text-sm text-gray-500 mb-3">
-          <FiMapPin className="w-3.5 h-3.5 mr-1 shrink-0 text-gray-400" />
-          <span className="truncate">{salon.address}, {salon.city}</span>
-        </div>
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div className="flex items-center text-xs text-gray-500">
-            <FiClock className="w-3 h-3 mr-1" />
-            {salon.opening_time?.slice(0, 5)} - {salon.closing_time?.slice(0, 5)}
-          </div>
-          {salon.starting_price && (
-            <span className="text-sm font-bold text-brand-600">
-              From ₹{Math.round(salon.starting_price)}
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
-  )
-}
+const faqs = [
+  { q: 'Is it really free?', qMr: 'खरंच मोफत आहे का?', a: 'Yes! Walk-in billing, CRM, analytics, staff management — all free. No hidden charges.' },
+  { q: 'Do I need a computer?', qMr: 'कंप्युटर लागतो का?', a: 'No! Works on your phone. Just open stylo.sbs in your mobile browser.' },
+  { q: 'How long to set up?', qMr: 'सेटअप किती वेळ लागतो?', a: '2 minutes. Register, add your services, start billing. We can help you set up for free.' },
+  { q: 'Is my data safe?', qMr: 'माझा डेटा सुरक्षित आहे का?', a: 'Yes. Your data is encrypted and stored securely. Only you can see your salon data.' },
+]
+
+const anim = { initial: { opacity: 0, y: 20 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true } }
 
 export default function Landing() {
-  const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [featuredSalons, setFeaturedSalons] = useState([])
-  const [loadingSalons, setLoadingSalons] = useState(true)
-
-  useEffect(() => {
-    const fetchFeatured = async () => {
-      try {
-        // Try to get nearby salons for featured section
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-              try {
-                const res = await axios.get(`${API_URL}/salons/nearby`, {
-                  params: { lat: pos.coords.latitude, lng: pos.coords.longitude, radius: 25000, sort: 'rating', limit: 8 }
-                })
-                setFeaturedSalons(res.data.salons || [])
-              } catch { setFeaturedSalons([]) }
-              setLoadingSalons(false)
-            },
-            () => setLoadingSalons(false),
-            { timeout: 5000 }
-          )
-        } else {
-          setLoadingSalons(false)
-        }
-      } catch {
-        setLoadingSalons(false)
-      }
-    }
-    fetchFeatured()
-  }, [])
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    navigate(`/discover${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`)
-  }
-
-  const handleCategoryClick = (query) => {
-    navigate(`/discover?search=${encodeURIComponent(query)}`)
-  }
+  const isSalonOwner = typeof window !== 'undefined' && !!localStorage.getItem('salonOwnerToken')
 
   return (
     <div className="min-h-screen bg-white">
-      <MarketplaceNavbar />
-
-      {/* Hero Section */}
-      <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-24 px-4 overflow-hidden bg-hero-pattern">
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-100 rounded-full blur-3xl opacity-40 -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-accent-100 rounded-full blur-3xl opacity-40 translate-y-1/2 -translate-x-1/2" />
-
-        <div className="relative max-w-6xl mx-auto text-center">
-          {/* Trust badges - above hero */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-wrap justify-center gap-3 mb-8"
+      {/* Mobile sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 p-3 sm:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)]">
+        <div className="flex gap-2">
+          <Link
+            to={isSalonOwner ? '/salon-owner/dashboard' : '/salon-owner/register'}
+            className="flex-1 py-3 bg-brand-600 text-white rounded-xl text-sm font-bold text-center"
           >
-            {trustSignals.map((signal) => (
-              <span
-                key={signal.text}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-100 text-xs font-medium text-gray-600"
-              >
-                <signal.icon className="w-3.5 h-3.5 text-brand-600" />
-                {signal.text}
-              </span>
-            ))}
+            {isSalonOwner ? 'My Dashboard' : 'Register Free'}
+          </Link>
+          <a href={WA_LINK} target="_blank" rel="noreferrer" className="py-3 px-4 bg-green-500 text-white rounded-xl font-bold flex items-center gap-1.5">
+            <FaWhatsapp className="w-5 h-5" />
+          </a>
+          <a href={`tel:${PHONE}`} className="py-3 px-4 bg-gray-100 text-gray-700 rounded-xl font-bold flex items-center gap-1.5">
+            <FiPhone className="w-5 h-5" />
+          </a>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-accent-500 flex items-center justify-center">
+              <span className="text-white text-sm">✂️</span>
+            </div>
+            <span className="text-lg font-bold bg-gradient-to-r from-brand-700 to-accent-600 bg-clip-text text-transparent">Stylo</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <a href={`tel:${PHONE}`} className="hidden sm:flex items-center gap-1.5 text-sm text-gray-600 font-medium">
+              <FiPhone className="w-4 h-4" /> {PHONE}
+            </a>
+            {isSalonOwner ? (
+              <Link to="/salon-owner/dashboard" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold">
+                My Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/salon-owner/login" className="hidden sm:inline-block px-4 py-2 text-brand-700 rounded-xl text-sm font-bold hover:bg-brand-50 transition">
+                  Login
+                </Link>
+                <Link to="/salon-owner/register" className="px-4 py-2 bg-brand-600 text-white rounded-xl text-sm font-bold">
+                  Register Free
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative bg-gradient-to-br from-brand-600 via-brand-700 to-accent-600 text-white overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-accent-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+        <div className="relative max-w-5xl mx-auto px-4 pt-12 pb-16 sm:pt-16 sm:pb-20 text-center">
+          <motion.div {...anim} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium mb-6">
+            💈 पुण्यातील सलून मालकांसाठी
           </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight tracking-tight"
-          >
-            Book the Best
-            <span className="bg-gradient-to-r from-brand-600 via-accent-500 to-brand-600 bg-clip-text text-transparent"> Salons </span>
-            <br className="hidden sm:block" />
-            Near You
+          <motion.h1 {...anim} transition={{ delay: 0.05 }} className="text-3xl sm:text-5xl font-bold mb-4 leading-tight">
+            तुमचा सलून
+            <br />
+            <span className="bg-white/20 px-3 py-1 rounded-xl inline-block mt-2">Stylo</span> वर आणा
           </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-lg sm:text-xl text-gray-500 mb-10 max-w-2xl mx-auto leading-relaxed"
-          >
-            Discover top-rated salons, compare prices, read real reviews, and book appointments instantly. No more waiting in queues.
+          <motion.p {...anim} transition={{ delay: 0.1 }} className="text-base sm:text-lg text-white/85 max-w-xl mx-auto mb-8 leading-relaxed">
+            Walk-in billing, customer tracking, staff management, analytics — सगळं एकाच ॲपमध्ये. <strong>मोफत.</strong>
           </motion.p>
-
-          {/* Search Bar - Industry standard hero search */}
-          <motion.form
-            onSubmit={handleSearch}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="max-w-2xl mx-auto mb-6"
-          >
-            <div className="flex items-center bg-white rounded-2xl shadow-brand border border-gray-200 hover:border-purple-300 hover:shadow-brand-lg transition-all p-2">
-              <div className="flex-1 flex items-center gap-2 pl-4">
-                <FiSearch className="w-5 h-5 text-gray-400 shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search salons, services, or areas..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full py-3 text-gray-700 placeholder-gray-400 outline-none text-base"
-                />
-              </div>
-              <button
-                type="submit"
-                className="px-6 sm:px-8 py-3.5 bg-brand-gradient-r text-white rounded-xl font-semibold transition-all shadow-brand text-sm sm:text-base whitespace-nowrap"
-              >
-                Find Salons
-              </button>
-            </div>
-          </motion.form>
-
-          {/* Quick actions below search */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-wrap justify-center gap-2 text-sm text-gray-500"
-          >
-            <span>Popular:</span>
-            {['Haircut near me', 'Hair Spa', 'Beard Trim', 'Unisex Salon'].map((tag) => (
-              <button
-                key={tag}
-                onClick={() => { setSearchQuery(tag); navigate(`/discover?search=${encodeURIComponent(tag)}`) }}
-                className="text-brand-600 hover:text-brand-700 hover:underline transition"
-              >
-                {tag}
-              </button>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Salon Owner Quick Access Banner */}
-      {(() => { const isSalonOwner = !!localStorage.getItem('salonOwnerToken'); return (
-      <section className="px-4 py-3 bg-gradient-to-r from-brand-50 to-accent-50 border-y border-brand-100">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-lg shrink-0">💈</span>
-            <p className="text-sm text-gray-700 truncate">
-              {isSalonOwner ? (
-                <span className="font-semibold">Welcome back! Go to your dashboard</span>
-              ) : (
-                <>
-                  <span className="font-semibold">Own a salon?</span>
-                  <span className="hidden sm:inline"> Manage bookings, billing & grow your business</span>
-                </>
-              )}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <motion.div {...anim} transition={{ delay: 0.15 }} className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
-              to={isSalonOwner ? "/salon-owner/dashboard" : "/salon-owner/login"}
-              className="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-brand-700 transition whitespace-nowrap"
+              to={isSalonOwner ? '/salon-owner/dashboard' : '/salon-owner/register'}
+              className="w-full sm:w-auto px-8 py-4 bg-white text-brand-700 rounded-2xl text-lg font-bold shadow-xl hover:bg-gray-100 transition text-center"
             >
-              {isSalonOwner ? 'My Dashboard' : 'Salon Login'}
+              {isSalonOwner ? 'Go to My Dashboard' : 'Register Your Salon Free'} <FiArrowRight className="inline w-5 h-5 ml-1" />
             </Link>
-            {!isSalonOwner && <Link
-              to="/salon-owner/register"
-              className="hidden sm:inline-block px-4 py-2 border border-brand-300 text-brand-700 rounded-xl text-sm font-semibold hover:bg-brand-50 transition whitespace-nowrap"
-            >
-              Register Free
-            </Link>}
-          </div>
-        </div>
-      </section>
-      )})()}
-
-      {/* Stats Bar */}
-      <section className="py-8 px-4 border-y border-gray-100 bg-gray-50/50">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {stats.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="flex items-center gap-3 justify-center"
-              >
-                <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center">
-                  <stat.icon className="w-5 h-5 text-brand-600" />
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-gray-900">{stat.value}</div>
-                  <div className="text-xs text-gray-500">{stat.label}</div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Popular Categories */}
-      <section className="py-16 sm:py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Browse by Service</h2>
-            <p className="text-gray-500 max-w-lg mx-auto">Find exactly what you need. Pick a service and discover the best salons offering it.</p>
+            <a href={WA_LINK} target="_blank" rel="noreferrer" className="w-full sm:w-auto px-8 py-4 bg-green-500 text-white rounded-2xl text-lg font-bold shadow-xl hover:bg-green-600 transition flex items-center justify-center gap-2">
+              <FaWhatsapp className="w-5 h-5" /> WhatsApp Us
+            </a>
           </motion.div>
+          <motion.p {...anim} transition={{ delay: 0.2 }} className="text-sm text-white/60 mt-4">
+            No credit card needed • Setup in 2 minutes • Works on mobile
+          </motion.p>
+        </div>
+      </section>
 
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
-            {popularCategories.map((cat, i) => (
-              <motion.button
-                key={cat.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+      {/* Pain Points */}
+      <section className="py-12 sm:py-16 px-4 bg-red-50">
+        <div className="max-w-5xl mx-auto">
+          <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8">
+            😰 अजूनही असं मॅनेज करताय?
+          </motion.h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {painPoints.map((p, i) => (
+              <motion.div
+                key={i}
+                {...anim}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => handleCategoryClick(cat.query)}
-                className="group flex flex-col items-center gap-3 p-4 sm:p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-purple-200 hover:bg-brand-50 hover:shadow-brand-lg transition-all duration-300"
+                className="bg-white rounded-2xl p-4 text-center border border-red-100 shadow-sm"
               >
-                <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-2xl sm:text-3xl shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                  {cat.icon}
-                </div>
-                <span className="text-sm font-semibold text-gray-700 group-hover:text-brand-700 transition-colors">
-                  {cat.name}
-                </span>
-              </motion.button>
+                <div className="text-3xl mb-2">{p.emoji}</div>
+                <h3 className="font-bold text-gray-900 text-sm mb-1">{p.title}</h3>
+                <p className="text-xs text-gray-500">{p.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Featured Salons */}
-      {featuredSalons.length > 0 && (
-        <section className="py-16 sm:py-20 px-4 bg-gray-50">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex items-end justify-between mb-8">
-              <div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Top Rated Near You</h2>
-                <p className="text-gray-500">Highest-rated salons in your area</p>
-              </div>
-              <Link
-                to="/discover"
-                className="hidden sm:flex items-center gap-1 text-brand-600 font-semibold hover:text-brand-700 transition"
-              >
-                View All <FiArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-
-            <div className="flex gap-5 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
-              {featuredSalons.map((salon, i) => (
-                <motion.div
-                  key={salon.id}
-                  initial={{ opacity: 0, x: 30 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
-                  className="snap-start"
-                >
-                  <FeaturedSalonCard salon={salon} />
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="text-center mt-6 sm:hidden">
-              <Link
-                to="/discover"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-brand-50 text-brand-600 rounded-xl font-semibold hover:bg-brand-100 transition"
-              >
-                View All Salons <FiArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* How It Works */}
-      <section className="py-16 sm:py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <span className="inline-block px-4 py-1.5 rounded-full bg-brand-50 text-brand-600 text-sm font-semibold mb-4">
-              Simple & Fast
+      {/* Features */}
+      <section className="py-12 sm:py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <motion.div {...anim} className="text-center mb-12">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-brand-50 text-brand-600 text-sm font-bold mb-3">
+              ✨ FEATURES
             </span>
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">How It Works</h2>
-            <p className="text-gray-500 max-w-lg mx-auto">Book your perfect appointment in 3 simple steps</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              Stylo तुमच्या सलूनसाठी काय करतो
+            </h2>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connecting line - desktop only */}
-            <div className="hidden md:block absolute top-16 left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-brand-200 via-accent-200 to-amber-200" />
-
-            {howItWorks.map((item, i) => (
+          <div className="space-y-8">
+            {features.map((f, i) => (
               <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="relative bg-white rounded-2xl p-8 text-center border border-gray-100 hover:border-purple-200 hover:shadow-xl hover:shadow-purple-100/30 transition-all duration-300"
+                key={i}
+                {...anim}
+                transition={{ delay: 0.05 }}
+                className={`flex flex-col ${i % 2 ? 'sm:flex-row-reverse' : 'sm:flex-row'} gap-6 items-center`}
               >
-                <div className={`w-14 h-14 rounded-2xl ${item.color} flex items-center justify-center mx-auto mb-5 relative z-10`}>
-                  <item.icon className="w-6 h-6" />
+                <div className="flex-1">
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r ${f.color} text-white text-sm font-bold mb-3`}>
+                    {f.emoji} {f.title}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-1">{f.titleMr}</h3>
+                  <p className="text-gray-600 text-sm mb-3 leading-relaxed">{f.desc}</p>
+                  <p className="text-gray-500 text-xs mb-3 leading-relaxed">{f.descMr}</p>
+                  <ul className="space-y-1.5">
+                    {f.highlights.map((h, j) => (
+                      <li key={j} className="flex items-center gap-2 text-sm text-gray-700">
+                        <FiCheck className="w-4 h-4 text-green-500 shrink-0" /> {h}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-100 text-xs font-bold text-gray-500 mb-3">
-                  Step {item.step}
+                <div className="flex-1 w-full">
+                  <div className={`bg-gradient-to-br ${f.color} rounded-2xl p-2 shadow-xl`}>
+                    <div className="bg-gray-900 rounded-xl overflow-hidden">
+                      <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-800">
+                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                        <span className="text-[10px] text-gray-500 ml-2">stylo.sbs</span>
+                      </div>
+                      {f.screenshot && (
+                        <img src={f.screenshot} alt={f.title} className="w-full" loading="lazy" />
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-500 leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-12 sm:py-16 px-4 bg-brand-50">
+        <div className="max-w-4xl mx-auto">
+          <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-2">
+            किंमत किती? / Pricing
+          </motion.h2>
+          <motion.p {...anim} className="text-center text-gray-500 mb-8">पूर्ण transparent. कोणताही hidden charge नाही.</motion.p>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <motion.div {...anim} className="bg-white rounded-2xl border-2 border-green-200 p-6 relative overflow-hidden">
+              <div className="absolute top-3 right-3 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">CURRENT</div>
+              <div className="text-3xl mb-1">🎉</div>
+              <h3 className="text-2xl font-black text-gray-900 mb-1">Free Plan</h3>
+              <p className="text-gray-500 text-sm mb-4">आत्ता आणि कायमचं मोफत</p>
+              <div className="text-4xl font-black text-green-600 mb-4">₹0<span className="text-base font-normal text-gray-400">/month</span></div>
+              <ul className="space-y-2 mb-6">
+                {['Unlimited Walk-in Billing', 'Customer CRM & History', 'Analytics & Daily Reports', 'Staff Salary & Commission', 'Online Booking Page', 'WhatsApp Receipts', 'Stylist Performance Tracking'].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm text-gray-700">
+                    <FiCheck className="w-4 h-4 text-green-500 shrink-0" /> {f}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/salon-owner/register" className="block w-full py-3 bg-green-600 text-white rounded-xl text-center font-bold hover:bg-green-700 transition">
+                Register Free →
+              </Link>
+            </motion.div>
+
+            <motion.div {...anim} transition={{ delay: 0.1 }} className="bg-white rounded-2xl border border-gray-200 p-6 relative overflow-hidden opacity-90">
+              <div className="absolute top-3 right-3 px-3 py-1 bg-brand-100 text-brand-700 rounded-full text-xs font-bold">COMING SOON</div>
+              <div className="text-3xl mb-1">🚀</div>
+              <h3 className="text-2xl font-black text-gray-900 mb-1">Pro Plan</h3>
+              <p className="text-gray-500 text-sm mb-4">Advanced features for growing salons</p>
+              <div className="text-4xl font-black text-brand-600 mb-4">Coming Soon</div>
+              <ul className="space-y-2 mb-6">
+                {['Everything in Free, plus:', 'SMS & WhatsApp Reminders', 'Loyalty Points & Rewards', 'Membership Plans', 'Inventory Management', 'Priority Support', 'Custom Branding'].map((f, i) => (
+                  <li key={f} className={`flex items-center gap-2 text-sm ${i === 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
+                    {i === 0 ? '✨' : <FiCheck className="w-4 h-4 text-brand-400 shrink-0" />} {f}
+                  </li>
+                ))}
+              </ul>
+              <div className="w-full py-3 bg-gray-100 text-gray-500 rounded-xl text-center font-bold">
+                Coming Soon
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 sm:py-20 px-4 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Loved by Thousands</h2>
-            <p className="text-gray-500">See what our customers have to say</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6">
+      <section className="py-12 sm:py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8">
+            सलून मालक काय म्हणतात
+          </motion.h2>
+          <div className="grid sm:grid-cols-2 gap-4">
             {testimonials.map((t, i) => (
               <motion.div
-                key={t.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
+                key={i}
+                {...anim}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-lg transition-shadow"
+                className="bg-gray-50 rounded-2xl p-5 border border-gray-100"
               >
-                <div className="flex gap-1 mb-4">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <FiStar
-                      key={s}
-                      className={`w-4 h-4 ${s <= t.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-200'}`}
-                    />
-                  ))}
+                <div className="flex gap-1 mb-3">
+                  {[1, 2, 3, 4, 5].map(s => <span key={s} className="text-amber-400 text-sm">★</span>)}
                 </div>
-                <p className="text-gray-600 mb-4 leading-relaxed">"{t.text}"</p>
+                <p className="text-gray-700 text-sm mb-4 leading-relaxed">"{t.text}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-gradient-r flex items-center justify-center text-white font-bold text-sm">
-                    {t.avatar}
+                  <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-bold">{t.avatar}</div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.salon}</p>
                   </div>
-                  <span className="font-semibold text-gray-800">{t.name}</span>
                 </div>
               </motion.div>
             ))}
@@ -499,110 +329,89 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* For Salon Owners CTA */}
-      <section className="py-16 sm:py-20 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="relative bg-gradient-to-br from-brand-600 via-brand-700 to-accent-600 rounded-3xl p-8 sm:p-12 md:p-16 text-white overflow-hidden">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-accent-500/20 rounded-full blur-3xl" />
+      {/* How to Start */}
+      <section className="py-12 sm:py-16 px-4 bg-gray-50">
+        <div className="max-w-5xl mx-auto">
+          <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8">
+            🚀 फक्त ३ स्टेप्समध्ये सुरू करा
+          </motion.h2>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {[
+              { num: '1', title: 'Register करा', desc: 'stylo.sbs वर जा, तुमचं नाव आणि फोन नंबर टाका. फक्त २ मिनिटं.', emoji: '📱' },
+              { num: '2', title: 'Services ॲड करा', desc: 'तुमच्या सर्व्हिसेस, किमती, आणि स्टाफ मेंबर्स ॲड करा.', emoji: '✂️' },
+              { num: '3', title: 'Billing सुरू करा', desc: 'आजच walk-in billing वापरायला सुरू करा. तुमचं पेज कस्टमर्सना शेअर करा!', emoji: '💰' },
+            ].map((s, i) => (
+              <motion.div
+                key={i}
+                {...anim}
+                transition={{ delay: i * 0.1 }}
+                className="bg-white rounded-2xl p-6 text-center border border-gray-100 shadow-sm"
+              >
+                <div className="w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center text-xl font-bold mx-auto mb-3">{s.num}</div>
+                <div className="text-2xl mb-2">{s.emoji}</div>
+                <h3 className="font-bold text-gray-900 mb-1">{s.title}</h3>
+                <p className="text-sm text-gray-500">{s.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="relative max-w-3xl">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm font-medium mb-6">
-                <FiAward className="w-4 h-4" /> For Salon Owners
-              </span>
-              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 leading-tight">
-                Grow Your Salon Business Online
-              </h2>
-              <p className="text-lg text-white/80 mb-8 max-w-2xl leading-relaxed">
-                Join Stylo and get discovered by thousands of customers in your area.
-                Manage bookings, services, and staff — all from one powerful dashboard.
-              </p>
+      {/* FAQ */}
+      <section className="py-12 sm:py-16 px-4">
+        <div className="max-w-3xl mx-auto">
+          <motion.h2 {...anim} className="text-2xl sm:text-3xl font-bold text-center text-gray-900 mb-8">
+            सामान्य प्रश्न
+          </motion.h2>
+          <div className="space-y-3">
+            {faqs.map((f, i) => (
+              <motion.div
+                key={i}
+                {...anim}
+                transition={{ delay: i * 0.05 }}
+                className="bg-gray-50 rounded-xl p-4 border border-gray-100"
+              >
+                <h3 className="font-bold text-gray-900 text-sm mb-1">{f.qMr} / {f.q}</h3>
+                <p className="text-sm text-gray-600">{f.a}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              <div className="grid sm:grid-cols-3 gap-6 mb-10">
-                {[
-                  { icon: FiUsers, title: 'Get Discovered', desc: 'Customers find you by location & services' },
-                  { icon: FiCalendar, title: 'Online Booking', desc: 'Accept bookings 24/7 automatically' },
-                  { icon: FiTrendingUp, title: 'Grow Revenue', desc: 'Analytics, insights & marketing tools' },
-                ].map((f) => (
-                  <div key={f.title} className="flex flex-col items-start gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                      <f.icon className="w-5 h-5" />
-                    </div>
-                    <h4 className="font-bold">{f.title}</h4>
-                    <p className="text-sm text-white/70">{f.desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  to="/for-salon-owners"
-                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-700 rounded-2xl text-lg font-bold hover:bg-gray-100 transition shadow-xl"
-                >
-                  Learn More <FiArrowRight />
-                </Link>
-                <Link
-                  to="/salon-owner/register"
-                  className="inline-flex items-center gap-2 px-8 py-4 border-2 border-white/30 text-white rounded-2xl text-lg font-semibold hover:bg-white/10 transition"
-                >
-                  Register Your Salon Free
-                </Link>
-              </div>
-            </div>
+      {/* Final CTA */}
+      <section className="py-12 sm:py-16 px-4 bg-gradient-to-br from-brand-600 to-accent-500 text-white">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">आजच सुरू करा — मोफत!</h2>
+          <p className="text-white/80 mb-8 max-w-md mx-auto">Register करा, services ॲड करा, आणि walk-in billing सुरू करा. आम्ही तुम्हाला सेटअप करायला मदत करू.</p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link to="/salon-owner/register" className="w-full sm:w-auto px-8 py-4 bg-white text-brand-700 rounded-2xl text-lg font-bold shadow-xl">
+              Register Free →
+            </Link>
+            <a href={WA_LINK} target="_blank" rel="noreferrer" className="w-full sm:w-auto px-8 py-4 bg-green-500 text-white rounded-2xl text-lg font-bold shadow-xl flex items-center justify-center gap-2">
+              <FaWhatsapp className="w-5 h-5" /> WhatsApp वर संपर्क करा
+            </a>
+            <a href={`tel:${PHONE}`} className="w-full sm:w-auto px-8 py-4 border-2 border-white/30 text-white rounded-2xl text-lg font-bold flex items-center justify-center gap-2">
+              <FiPhone className="w-5 h-5" /> Call: {PHONE}
+            </a>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-10 mb-12">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-brand-gradient-r flex items-center justify-center">
-                  <FiScissors className="text-white w-4 h-4" />
-                </div>
-                <span className="text-xl font-bold">Stylo</span>
-              </div>
-              <p className="text-gray-400 mb-6 max-w-sm leading-relaxed">
-                Book. Style. Shine.. Find, compare, and book the best salons near you in seconds.
-              </p>
-              <div className="flex gap-3">
-                {trustSignals.map((signal) => (
-                  <span
-                    key={signal.text}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-400"
-                  >
-                    <signal.icon className="w-3 h-3 text-brand-400" />
-                    {signal.text}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Customers</h4>
-              <ul className="space-y-3 text-sm text-gray-400">
-                <li><Link to="/discover" className="hover:text-white transition">Find Salons</Link></li>
-                <li><Link to="/login" className="hover:text-white transition">Customer Login</Link></li>
-                <li><Link to="/my-bookings" className="hover:text-white transition">My Bookings</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">For Salon Owners</h4>
-              <ul className="space-y-3 text-sm text-gray-400">
-                <li><Link to="/for-salon-owners" className="hover:text-white transition">Why Stylo?</Link></li>
-                <li><Link to="/salon-owner/register" className="hover:text-white transition">Register Salon</Link></li>
-                <li><Link to="/salon-owner/login" className="hover:text-white transition">Salon Login</Link></li>
-              </ul>
-            </div>
+      <footer className="bg-gray-900 text-white py-8 px-4">
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-sm">✂️</div>
+            <span className="text-lg font-bold">Stylo</span>
           </div>
-          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-            <p>&copy; {new Date().getFullYear()} Stylo. All rights reserved.</p>
-            <p className="flex items-center gap-1">Made with <FiHeart className="text-pink-500 w-3.5 h-3.5" /> in Pune, India</p>
-          </div>
+          <p className="text-gray-400 text-sm mb-2">Salon management, simplified.</p>
+          <p className="text-gray-500 text-xs">Made with ❤️ in Pune, India</p>
         </div>
       </footer>
+
+      {/* Spacer for mobile sticky CTA */}
+      <div className="h-20 sm:hidden" />
     </div>
   )
 }

@@ -467,7 +467,7 @@ export default function SalonProfile() {
         <MarketplaceNavbar />
         <div className="flex flex-col items-center justify-center pt-32">
           <h2 className="text-xl font-bold text-gray-700 mb-2">Salon not found</h2>
-          <Link to="/discover" className="text-brand-600 font-medium hover:underline">Browse salons</Link>
+          <Link to="/" className="text-brand-600 font-medium hover:underline">Go home</Link>
         </div>
       </div>
     )
@@ -495,7 +495,7 @@ export default function SalonProfile() {
         {/* Top actions */}
         <div className="relative max-w-4xl mx-auto px-4 pt-4 flex items-center justify-between">
           <Link
-            to="/discover"
+            to="/"
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 backdrop-blur-sm text-white/90 hover:bg-white/20 transition text-sm font-medium"
           >
             <FiArrowLeft className="w-4 h-4" /> Back

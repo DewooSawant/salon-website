@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FiMenu, FiX, FiSearch, FiScissors, FiGrid } from 'react-icons/fi'
+import { FiMenu, FiX, FiScissors, FiGrid } from 'react-icons/fi'
 
 export default function MarketplaceNavbar({ transparent = false }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -10,10 +10,7 @@ export default function MarketplaceNavbar({ transparent = false }) {
 
   const isActive = (path) => location.pathname === path
 
-  const navLinks = [
-    { to: '/discover', label: 'Find Salons', icon: FiSearch },
-    { to: '/for-salon-owners', label: 'List Your Salon', icon: FiScissors },
-  ]
+  const navLinks = []
 
   return (
     <>

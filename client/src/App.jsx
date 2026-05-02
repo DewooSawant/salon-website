@@ -7,7 +7,6 @@ import { CustomerProvider } from './context/CustomerContext'
 
 // Marketplace Pages
 import Landing from './pages/marketplace/Landing'
-import Discover from './pages/marketplace/Discover'
 import SalonProfile from './pages/marketplace/SalonProfile'
 import SalonOwnerRegister from './pages/marketplace/SalonOwnerRegister'
 import SalonOwnerLogin from './pages/marketplace/SalonOwnerLogin'
@@ -22,7 +21,6 @@ import SalonOwnerDailyReport from './pages/marketplace/SalonOwnerDailyReport'
 import SalonOwnerCustomers from './pages/marketplace/SalonOwnerCustomers'
 import SalonOwnerStaffPay from './pages/marketplace/SalonOwnerStaffPay'
 import SalonOwnerAnalytics from './pages/marketplace/SalonOwnerAnalytics'
-import ForSalonOwners from './pages/marketplace/ForSalonOwners'
 
 // Admin Pages (salon owner dashboard - reuse existing)
 import Login from './pages/admin/Login'
@@ -93,13 +91,15 @@ function PublicWebsite() {
 function AppRoutes() {
   return (
     <Routes>
-      {/* ========== MARKETPLACE ========== */}
+      {/* ========== PUBLIC ========== */}
       <Route path="/" element={<Landing />} />
-      <Route path="/discover" element={<Discover />} />
       <Route path="/salon/:slug" element={<SalonProfile />} />
 
+      {/* Redirects for removed marketplace/for-salon-owners pages */}
+      <Route path="/discover" element={<Navigate to="/" replace />} />
+      <Route path="/for-salon-owners" element={<Navigate to="/" replace />} />
+
       {/* ========== SALON OWNER ========== */}
-      <Route path="/for-salon-owners" element={<ForSalonOwners />} />
       <Route path="/salon-owner/register" element={<SalonOwnerRegister />} />
       <Route path="/salon-owner/login" element={<SalonOwnerLogin />} />
       <Route path="/salon-owner/dashboard" element={<SalonOwnerDashboard />} />
