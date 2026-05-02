@@ -4,6 +4,7 @@
   "outputDirectory": "client/dist",
   "installCommand": "npm install && cd server && npm install",
   "framework": null,
+  "regions": ["sin1"],
   "functions": {
     "api/index.js": {
       "memory": 1024,
