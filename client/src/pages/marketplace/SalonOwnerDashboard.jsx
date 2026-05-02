@@ -314,50 +314,58 @@ export default function SalonOwnerDashboard() {
                       )}
                     </div>
 
-                    {/* Row 2: Payment + Bill */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex gap-1">
-                        {[{v:'cash',l:'💵',t:'Cash'},{v:'upi',l:'📱',t:'UPI'},{v:'card',l:'💳',t:'Card'}].map(p => (
-                          <button key={p.v} onClick={() => setQuickPayment(p.v)}
-                            className={`px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                              quickPayment === p.v
-                                ? 'bg-green-100 border-2 border-green-400 text-green-700'
-                                : 'bg-gray-50 border-2 border-gray-100 text-gray-500 hover:border-green-200'
-                            }`}>
-                            {p.l} <span className="hidden sm:inline">{p.t}</span>
-                          </button>
-                        ))}
-                      </div>
-
-                      <button
-                        onClick={async () => {
-                          if (!quickName.trim()) { toast.error('Enter customer name'); return }
-                          setQuickBilling(true)
-                          try {
-                            const res = await api.post('/salon-owner/walkin', {
-                              customer_name: quickName.trim(),
-                              customer_phone: quickPhone.trim() || undefined,
-                              stylist_id: quickStylist || undefined,
-                              services: quickServices.map(s => s.id),
-                              payment_method: quickPayment,
-                            })
-                            setQuickSuccess(res.data.booking)
-                            toast.success(`Billed ₹${res.data.booking.final_price}!`)
-                            fetchData()
-                          } catch (err) {
-                            toast.error(err.response?.data?.error || 'Failed')
-                          } finally { setQuickBilling(false) }
-                        }}
-                        disabled={quickBilling}
-                        className="flex-1 py-3.5 bg-green-600 text-white rounded-xl font-bold text-base hover:bg-green-700 transition disabled:opacity-50 shadow-lg shadow-green-200 whitespace-nowrap"
-                      >
-                        {quickBilling ? (
-                          <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          `Bill ₹${quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)}`
-                        )}
-                      </button>
+                    {/* Row 2: Payment method — own row, always shows labels */}
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Payment Method</p>
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {[
+                        { v: 'cash', l: '💵', t: 'Cash' },
+                        { v: 'upi', l: '📲', t: 'UPI' },
+                        { v: 'card', l: '💳', t: 'Card' },
+                      ].map(p => (
+                        <button
+                          key={p.v}
+                          onClick={() => setQuickPayment(p.v)}
+                          className={`flex flex-col items-center gap-0.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                            quickPayment === p.v
+                              ? 'bg-green-100 border-2 border-green-500 text-green-700'
+                              : 'bg-gray-50 border-2 border-gray-200 text-gray-600 hover:border-green-300'
+                          }`}
+                        >
+                          <span className="text-xl leading-none">{p.l}</span>
+                          <span className="text-xs">{p.t}</span>
+                        </button>
+                      ))}
                     </div>
+
+                    {/* Row 3: Bill button — full width, dominant */}
+                    <button
+                      onClick={async () => {
+                        if (!quickName.trim()) { toast.error('Enter customer name'); return }
+                        setQuickBilling(true)
+                        try {
+                          const res = await api.post('/salon-owner/walkin', {
+                            customer_name: quickName.trim(),
+                            customer_phone: quickPhone.trim() || undefined,
+                            stylist_id: quickStylist || undefined,
+                            services: quickServices.map(s => s.id),
+                            payment_method: quickPayment,
+                          })
+                          setQuickSuccess(res.data.booking)
+                          toast.success(`Billed ₹${res.data.booking.final_price}!`)
+                          fetchData()
+                        } catch (err) {
+                          toast.error(err.response?.data?.error || 'Failed')
+                        } finally { setQuickBilling(false) }
+                      }}
+                      disabled={quickBilling}
+                      className="w-full py-4 bg-green-600 text-white rounded-xl font-bold text-base hover:bg-green-700 transition disabled:opacity-50 shadow-lg shadow-green-200"
+                    >
+                      {quickBilling ? (
+                        <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin align-middle" />
+                      ) : (
+                        `Bill ₹${quickServices.reduce((s, svc) => s + parseFloat(svc.discounted_price || svc.price), 0)} · ${quickPayment.toUpperCase()}`
+                      )}
+                    </button>
                   </div>
                 </div>
               )}
