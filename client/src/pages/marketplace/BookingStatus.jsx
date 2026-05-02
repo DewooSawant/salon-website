@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import {
   FiArrowLeft, FiCalendar, FiClock, FiMapPin, FiPhone, FiUser,
   FiCheck, FiX, FiShare2, FiLink, FiExternalLink, FiAlertCircle,
+  FiDownload, FiScissors, FiBell,
 } from 'react-icons/fi'
 import { FaWhatsapp, FaFacebook, FaTwitter } from 'react-icons/fa'
 import RecentBookingsMenu from '../../components/marketplace/RecentBookingsMenu'
@@ -26,12 +27,58 @@ const formatDate = (d) => {
   return date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+// Hero banner config per status: gradient, icon, headline, subline, pill bg
 const statusConfig = {
-  pending: { label: 'Pending Confirmation', color: 'bg-amber-50 text-amber-700 border-amber-200', canCancel: true },
-  confirmed: { label: 'Confirmed', color: 'bg-green-50 text-green-700 border-green-200', canCancel: true },
-  completed: { label: 'Completed', color: 'bg-blue-50 text-blue-700 border-blue-200', canCancel: false },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-600 border-gray-200', canCancel: false },
-  no_show: { label: 'No-show', color: 'bg-gray-100 text-gray-600 border-gray-200', canCancel: false },
+  pending: {
+    label: 'Awaiting confirmation',
+    subline: 'The salon will confirm your booking shortly.',
+    gradient: 'from-amber-400 via-amber-500 to-orange-500',
+    icon: FiClock,
+    canCancel: true,
+  },
+  confirmed: {
+    label: 'You\'re confirmed',
+    subline: 'See you at your appointment!',
+    gradient: 'from-green-500 via-emerald-500 to-teal-500',
+    icon: FiCheck,
+    canCancel: true,
+  },
+  completed: {
+    label: 'All done',
+    subline: 'Thanks for visiting!',
+    gradient: 'from-blue-500 via-indigo-500 to-purple-500',
+    icon: FiCheck,
+    canCancel: false,
+  },
+  cancelled: {
+    label: 'Cancelled',
+    subline: 'This booking is no longer active.',
+    gradient: 'from-gray-400 via-gray-500 to-gray-600',
+    icon: FiX,
+    canCancel: false,
+  },
+  no_show: {
+    label: 'Marked as no-show',
+    subline: 'You did not arrive for this appointment.',
+    gradient: 'from-gray-400 via-gray-500 to-gray-600',
+    icon: FiAlertCircle,
+    canCancel: false,
+  },
+}
+
+// Journey timeline: steps in order. Which is the current/last reached depends on status.
+const journeySteps = [
+  { key: 'booked', label: 'Booked', icon: FiCalendar },
+  { key: 'confirmed', label: 'Confirmed', icon: FiBell },
+  { key: 'completed', label: 'Completed', icon: FiCheck },
+]
+// Map status → highest reached index
+const statusReached = {
+  pending: 0,
+  confirmed: 1,
+  completed: 2,
+  cancelled: -1, // special — hide timeline
+  no_show: -1,
 }
 
 function ShareMenu({ url, title, onClose }) {
@@ -227,8 +274,20 @@ export default function BookingStatus() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
+      {/* Print-only stylesheet: hide everything with .no-print, show only the receipt block */}
+      <style>{`
+        @media print {
+          body { background: white !important; }
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          .print-receipt { box-shadow: none !important; border: none !important; }
+          header, .sticky { position: static !important; }
+        }
+        .print-only { display: none; }
+      `}</style>
+
       {/* Top bar */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 no-print">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-1.5">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-600 to-accent-500 flex items-center justify-center">
@@ -261,25 +320,137 @@ export default function BookingStatus() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 pt-6">
-        {/* Status hero */}
+        {/* PRINT-ONLY RECEIPT — clean branded layout for printing / saving as PDF / screenshotting */}
+        <div className="print-only bg-white p-6 mb-4 print-receipt">
+          <div className="flex items-center justify-between pb-4 border-b-2 border-gray-900">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-accent-500 flex items-center justify-center">
+                  <FiScissors className="text-white w-5 h-5" />
+                </div>
+                <span className="text-2xl font-bold">Stylo</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">stylo.sbs</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-gray-500 uppercase tracking-wider">Booking Receipt</p>
+              <p className="text-lg font-mono font-bold">{booking.booking_code}</p>
+            </div>
+          </div>
+
+          <h1 className="text-3xl font-bold mt-6 mb-1">{booking.salon_name}</h1>
+          {booking.salon_address && <p className="text-sm text-gray-600 mb-1">{booking.salon_address}</p>}
+          {booking.salon_phone && <p className="text-sm text-gray-600">{booking.salon_phone}</p>}
+
+          <div className="grid grid-cols-2 gap-6 mt-6 py-4 border-y border-gray-200">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1">Customer</p>
+              <p className="text-base font-semibold">{booking.customer_name}</p>
+              {booking.customer_phone && <p className="text-sm text-gray-600">{booking.customer_phone}</p>}
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-1">Appointment</p>
+              <p className="text-base font-semibold">{formatDate(booking.booking_date)}</p>
+              <p className="text-sm text-gray-600">{formatTime(booking.start_time)} – {formatTime(booking.end_time)}</p>
+              {booking.stylist_name && <p className="text-sm text-gray-600 mt-1">Stylist: {booking.stylist_name}</p>}
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Services</p>
+            <div className="space-y-2">
+              {(booking.services || []).map(s => (
+                <div key={s.id} className="flex items-center justify-between py-1 border-b border-dashed border-gray-200">
+                  <div>
+                    <p className="text-sm font-medium">{s.service_name}</p>
+                    <p className="text-xs text-gray-500">{s.service_duration} min</p>
+                  </div>
+                  <p className="text-sm font-semibold">₹{Number(s.service_price).toFixed(0)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-3 border-t-2 border-gray-900 flex items-center justify-between">
+              <span className="text-base font-bold">Total</span>
+              <span className="text-2xl font-bold">₹{Number(booking.final_price).toFixed(0)}</span>
+            </div>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+            <p className="text-xs text-gray-500">
+              Status: <span className="font-semibold capitalize">{booking.status.replace('_', ' ')}</span> · Generated on {new Date().toLocaleDateString('en-IN')}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Manage this booking at stylo.sbs/booking/{booking.booking_code}
+            </p>
+          </div>
+        </div>
+
+        {/* Status hero — full-bleed colored banner */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl p-5 mb-4 border ${statusInfo.color}`}
+          className={`relative overflow-hidden rounded-2xl p-6 mb-4 bg-gradient-to-br ${statusInfo.gradient} text-white shadow-lg`}
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{statusInfo.label}</p>
-              <h1 className="text-2xl font-bold text-gray-900">{booking.salon_name}</h1>
-              <p className="text-sm text-gray-600 mt-1">Booking code: <span className="font-mono font-bold">{booking.booking_code}</span></p>
-            </div>
-            {booking.status === 'confirmed' && (
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                <FiCheck className="w-6 h-6 text-green-600" />
+          {/* Decorative glows */}
+          <div className="pointer-events-none absolute -top-8 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-10 -left-10 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
+
+          <div className="relative flex items-start gap-4">
+            <motion.div
+              initial={{ scale: 0.6, rotate: -10 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/30"
+            >
+              <statusInfo.icon className="w-7 h-7 text-white" strokeWidth={2.5} />
+            </motion.div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-white/80 mb-1">{statusInfo.label}</p>
+              <h1 className="text-2xl sm:text-3xl font-bold leading-tight truncate">{booking.salon_name}</h1>
+              <p className="text-sm text-white/85 mt-1">{statusInfo.subline}</p>
+              <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-xs">
+                <span className="opacity-80">CODE</span>
+                <span className="font-mono font-bold tracking-wider">{booking.booking_code}</span>
               </div>
-            )}
+            </div>
           </div>
         </motion.div>
+
+        {/* Journey timeline — hidden for cancelled/no_show */}
+        {statusReached[booking.status] >= 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-4">
+            <div className="flex items-center justify-between relative">
+              {/* Connecting line behind steps */}
+              <div className="absolute top-4 left-[14%] right-[14%] h-0.5 bg-gray-200" />
+              <div
+                className="absolute top-4 left-[14%] h-0.5 bg-gradient-to-r from-brand-500 to-accent-500 transition-all"
+                style={{ width: `${(statusReached[booking.status] / (journeySteps.length - 1)) * 72}%` }}
+              />
+              {journeySteps.map((step, i) => {
+                const reached = i <= statusReached[booking.status]
+                const isCurrent = i === statusReached[booking.status]
+                return (
+                  <div key={step.key} className="relative flex flex-col items-center flex-1">
+                    <motion.div
+                      initial={false}
+                      animate={{ scale: isCurrent ? 1.1 : 1 }}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${
+                        reached
+                          ? 'bg-brand-600 border-brand-600 text-white shadow-md shadow-brand-500/30'
+                          : 'bg-white border-gray-200 text-gray-400'
+                      }`}
+                    >
+                      <step.icon className="w-4 h-4" strokeWidth={2.5} />
+                    </motion.div>
+                    <span className={`mt-2 text-xs font-semibold ${reached ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {step.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Appointment card */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4 space-y-4">
@@ -362,7 +533,7 @@ export default function BookingStatus() {
         </div>
 
         {/* Actions */}
-        <div className="space-y-2">
+        <div className="space-y-2 no-print">
           {gcalUrl && booking.status !== 'cancelled' && booking.status !== 'completed' && (
             <a
               href={gcalUrl}
@@ -373,6 +544,20 @@ export default function BookingStatus() {
               <FiCalendar className="w-4 h-4" /> Add to Google Calendar
             </a>
           )}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => window.print()}
+              className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition"
+            >
+              <FiDownload className="w-4 h-4" /> Receipt
+            </button>
+            <button
+              onClick={handleShare}
+              className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition"
+            >
+              <FiShare2 className="w-4 h-4" /> Share
+            </button>
+          </div>
           {booking.salon_whatsapp && (
             <a
               href={`https://wa.me/${booking.salon_whatsapp}?text=${encodeURIComponent(`Hi! About my booking ${booking.booking_code} at ${booking.salon_name}.`)}`}
