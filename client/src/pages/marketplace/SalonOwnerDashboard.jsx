@@ -124,9 +124,9 @@ export default function SalonOwnerDashboard() {
 
   const stats = dashboard?.stats || {}
 
-  // Profile-completion detection — prompt to finish setup if signup was minimal
+  // Profile-completion detection — only prompt for the essentials (services, staff).
+  // Location is optional and doesn't block billing.
   const missing = []
-  if (salon && (!salon.latitude || !salon.longitude)) missing.push('location on map')
   if (salon && services.length === 0) missing.push('services')
   if (salon && stylists.length === 0) missing.push('staff')
   const hideProfileCard = typeof window !== 'undefined' && localStorage.getItem('profileCardDismissed') === '1'
@@ -145,11 +145,6 @@ export default function SalonOwnerDashboard() {
               Still need to add: <span className="font-semibold">{missing.join(', ')}</span>. Takes 2 minutes.
             </p>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {salon && (!salon.latitude || !salon.longitude) && (
-                <Link to="/salon-owner/settings" className="text-xs font-semibold text-amber-800 bg-white px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100 transition">
-                  Add location →
-                </Link>
-              )}
               {salon && services.length === 0 && (
                 <Link to="/salon-owner/services" className="text-xs font-semibold text-amber-800 bg-white px-3 py-1.5 rounded-lg border border-amber-300 hover:bg-amber-100 transition">
                   Add services →
